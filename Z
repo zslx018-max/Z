@@ -1,0 +1,2702 @@
+local Players = game:GetService("Players")
+local RunService = game:GetService("RunService")
+local UserInputService = game:GetService("UserInputService")
+local TweenService = game:GetService("TweenService")
+local StarterGui = game:GetService("StarterGui")
+local Debris = game:GetService("Debris") 
+local Stats = game:GetService("Stats")
+local Workspace = game:GetService("Workspace")
+
+--// 2. VARIABLES DE ENTORNO //--
+local LocalPlayer = Players.LocalPlayer
+local Camera = Workspace.CurrentCamera
+local ParentTarget = LocalPlayer:WaitForChild("PlayerGui")
+
+local cloneref = (cloneref or clonereference or function(instance) return instance end)
+local ReplicatedStorage = cloneref(game:GetService("ReplicatedStorage"))
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+-- // FUNCIÓN MAESTRA: GENERADOR DE ACCESOS RÁPIDOS Z-NORESTE // --
+local function CreateQuickButton(Name, VariableName, IconID)
+    -- Verificar si ya existe
+    if game.CoreGui:FindFirstChild("Z_Widget_"..Name) then return end
+
+    local Z_WidgetGui = Instance.new("ScreenGui", game.CoreGui)
+    Z_WidgetGui.Name = "Z_Widget_"..Name
+    
+    local Holder = Instance.new("Frame", Z_WidgetGui)
+    Holder.Size = UDim2.new(0, 115, 0, 35)
+    Holder.Position = UDim2.new(0.5, -57, 0.2, 0) 
+    Holder.BackgroundTransparency = 1 
+
+    local MainBtn = Instance.new("TextButton", Holder)
+    MainBtn.Size = UDim2.new(1, 0, 1, 0)
+    MainBtn.BackgroundColor3 = Color3.fromRGB(10, 10, 10)
+    MainBtn.BackgroundTransparency = 0.25 
+    MainBtn.Text = "" 
+    MainBtn.ClipsDescendants = true
+    Instance.new("UICorner", MainBtn).CornerRadius = UDim.new(0, 8)
+
+    -- [LAYOUT E ICONOS IGUAL QUE ANTES]
+    local Layout = Instance.new("UIListLayout", MainBtn)
+    Layout.FillDirection = "Horizontal"
+    Layout.HorizontalAlignment = "Center"
+    Layout.VerticalAlignment = "Center"
+    Layout.Padding = UDim.new(0, 6)
+
+    local Icon = Instance.new("ImageLabel", MainBtn)
+    Icon.BackgroundTransparency = 1
+    Icon.Size = UDim2.new(0, 18, 0, 18)
+    Icon.Image = "rbxassetid://"..tostring(IconID)
+
+    local TextLabel = Instance.new("TextLabel", MainBtn)
+    TextLabel.BackgroundTransparency = 1
+    TextLabel.AutomaticSize = "XY"
+    TextLabel.Text = Name:upper()
+    TextLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
+    TextLabel.Font = Enum.Font.GothamBold
+    TextLabel.TextSize = 10
+
+    local RainbowStroke = Instance.new("UIStroke", MainBtn)
+    RainbowStroke.Thickness = 2.2
+    local UIGradient = Instance.new("UIGradient", RainbowStroke)
+    UIGradient.Color = ColorSequence.new({ColorSequenceKeypoint.new(0, Color3.fromRGB(255, 0, 0)), ColorSequenceKeypoint.new(0.5, Color3.fromRGB(0, 255, 255)), ColorSequenceKeypoint.new(1, Color3.fromRGB(255, 0, 0))})
+
+    task.spawn(function()
+        local angle = 0
+        game:GetService("RunService").RenderStepped:Connect(function()
+            angle = angle + 3 
+            UIGradient.Rotation = angle
+            local isActive = _G[VariableName]
+            TextLabel.TextColor3 = isActive and Color3.fromRGB(255, 255, 255) or Color3.fromRGB(150, 150, 150)
+            Icon.ImageColor3 = isActive and Color3.fromRGB(255, 255, 255) or Color3.fromRGB(150, 150, 150)
+        end)
+    end)
+
+    -- // EVENTO DE CLICK (SÓLO PARA ACTIVAR) // --
+    MainBtn.MouseButton1Click:Connect(function()
+        _G[VariableName] = not _G[VariableName]
+        _G.Z_Force_Reset = true 
+        
+        local s = Instance.new("Sound", game.SoundService)
+        s.SoundId = "rbxassetid://120401943587131"
+        s:Play()
+    end)
+
+    -- // LÓGICA DRAGGABLE MEJORADA (PC & MÓVIL) // --
+    local dragging = false
+    local isPressing = false
+    local dragStart, startPos, holdStartTime
+    local holdThreshold = 0.35 -- Tiempo para que empiece a arrastrar
+
+    MainBtn.InputBegan:Connect(function(input)
+        if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
+            isPressing = true
+            holdStartTime = tick()
+            dragStart = input.Position
+            startPos = Holder.Position
+        end
+    end)
+
+    -- Usamos UserInputService global para detectar el movimiento aunque el mouse se salga del botón
+    game:GetService("UserInputService").InputChanged:Connect(function(input)
+        if isPressing and (input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch) then
+            -- Solo activamos el drag si se ha mantenido presionado el tiempo suficiente
+            if (tick() - holdStartTime) >= holdThreshold then
+                dragging = true
+                local delta = input.Position - dragStart
+                Holder.Position = UDim2.new(
+                    startPos.X.Scale, 
+                    startPos.X.Offset + delta.X, 
+                    startPos.Y.Scale, 
+                    startPos.Y.Offset + delta.Y
+                )
+            end
+        end
+    end)
+
+    -- EL FIX REAL: Resetear todo cuando sueltas el click
+    game:GetService("UserInputService").InputEnded:Connect(function(input)
+        if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
+            isPressing = false
+            dragging = false
+            holdStartTime = 0
+        end
+    end)
+end
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+local WindUI
+
+do
+    local ok, result = pcall(function()
+        return require("./src/Init")
+    end)
+    
+    if ok then
+        WindUI = result
+    else 
+        if cloneref(game:GetService("RunService")):IsStudio() then
+            WindUI = require(cloneref(ReplicatedStorage:WaitForChild("WindUI"):WaitForChild("Init")))
+        else
+            WindUI = loadstring(game:HttpGet("https://raw.githubusercontent.com/Beto321df/oiioidjasfdhsf/refs/heads/main/32%24"))()
+        end
+    end
+end
+
+-- */  Window  /* --
+local Window = WindUI:CreateWindow({
+    Title = "ZBeta v1.0  |  El Paso Texas.",
+    Author = "By  •  @znoreste",
+    Folder = "Z_EPT_Configs", -- CAMBIADO: Sin caracteres raros para que no de error
+    Icon = "solar:incognito-broken", -- El icono se queda igual, este no da error
+    Theme = "Red",
+    NewElements = true,
+    HideSearchBar = true,
+    
+    OpenButton = {
+        Title = "Z - EPT",
+        CornerRadius = UDim.new(1,0),
+        StrokeThickness = 3,
+        Enabled = true,
+        Draggable = true,
+        OnlyMobile = false,
+        Scale = 0.8,
+        
+        Color = ColorSequence.new(
+            Color3.fromHex("#e53935"), 
+            Color3.fromHex("#e53935")
+        )
+    },
+    Topbar = {
+        Height = 44,
+        ButtonsType = "Default",
+    },
+})
+
+do
+    Window:Tag({
+        Title = "AntiBan: ON",
+        Icon = "solar:shield-bold-duotone",
+        Color = Color3.fromHex("#1c1c1c"),
+        Border = true,
+    })
+end
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+-- // 🧹 LIMPIEZA DE MEMORIA // --
+if _G.Z_GunCleanup then _G.Z_GunCleanup() end
+
+local Player = game.Players.LocalPlayer
+local gunLoopActive = true
+local connections = {}
+local Originals = {} -- Guardamos los valores por si desactivas el hack
+
+_G.Z_GunCleanup = function()
+    gunLoopActive = false
+    Originals = {}
+    for _, c in pairs(connections) do c:Disconnect() end
+end
+
+-- // 🔧 APLICADOR DE HACKS (LA COMBINACIÓN PERFECTA) // --
+local function HackGun(v)
+    if type(v) ~= "table" or not rawget(v, "gunName") then return end
+    
+    local gName = tostring(v.gunName):lower()
+    
+    -- --- 🔥 MODOS DE FUEGO PERSONALIZADOS POR ARMA ---
+    if _G.Z_GunMods_Burst then
+        if gName:find("hi%-point") or (gName:find("glock") and not gName:find("switch")) then
+            -- RÁFAGA (BURST) para Hi-point y Glock normal
+            v.ShootType = 2
+            v.BurstShot = 3
+            if type(v.FireModes) == "table" then
+                v.FireModes.Burst = true
+                v.FireModes.Semi = true
+                v.FireModes.Auto = false
+                v.FireModes.ChangeFiremode = true
+            end
+        elseif gName:find("tec%-9") or gName:find("glock switch") or gName:find("ar%-15") or gName:find("ak%-47") then
+            -- AUTO (FULL AUTO) para TEC-9, Glock Switch, AR-15 y AK-47
+            v.ShootType = 3
+            if type(v.FireModes) == "table" then
+                v.FireModes.Burst = false
+                v.FireModes.Semi = true
+                v.FireModes.Auto = true
+                v.FireModes.ChangeFiremode = true
+            end
+        end
+    end
+
+    -- --- ♾️ INF AMMO TAL CUAL (SCRIPT 2) ---
+    if _G.Z_GunMods_InfAmmo then
+        v.AmmoInGun = math.huge 
+        v.Ammo = math.huge
+        v.StoredAmmo = math.huge
+        v.MaxStoredAmmo = math.huge 
+        if rawget(v, "Jammed") ~= nil then v.Jammed = false end
+    end
+
+    -- --- 🎯 NO RECOIL ULTRA PRO (SCRIPT 2) ---
+    if _G.Z_GunMods_NoRecoil then
+        v.MinSpread = 0
+        v.MaxSpread = 0
+        v.AimInaccuracyStepAmount = 0
+        v.AimInaccuracyDecrease = 10 -- Recuperación instantánea
+        
+        v.MinRecoilPower = 0
+        v.MaxRecoilPower = 0
+        v.RecoilPowerStepAmount = 0
+        v.Recoil = 0 
+
+        -- Reseteo de Cámara
+        if type(v.camRecoil) == "table" then
+            v.camRecoil.camRecoilUp = {0,0}
+            v.camRecoil.camRecoilTilt = {0,0}
+            v.camRecoil.camRecoilLeft = {0,0}
+            v.camRecoil.camRecoilRight = {0,0}
+        end
+        -- Reseteo del Arma
+        if type(v.gunRecoil) == "table" then
+            v.gunRecoil.gunRecoilUp = {0,0}
+            v.gunRecoil.gunRecoilTilt = {0,0}
+            v.gunRecoil.gunRecoilLeft = {0,0}
+            v.gunRecoil.gunRecoilRight = {0,0}
+            v.gunRecoil.DownPunch = 0
+        end
+    end
+end
+
+-- // 🔍 ESCÁNER QUIRÚRGICO (SE EJECUTA 1 SOLA VEZ, CERO LAG) // --
+_G.Z_ForceGunScan = function()
+    if not _G.Z_GunMods_Active then return end
+    pcall(function()
+        for _, v in pairs(getgc(true)) do
+            if type(v) == "table" and rawget(v, "gunName") then
+                HackGun(v)
+            end
+        end
+    end)
+end
+
+-- // ⚡ SISTEMA INSTANTÁNEO DESDE EL INVENTARIO (ANTI-LAG) // --
+local function HookBackpack(backpack)
+    table.insert(connections, backpack.ChildAdded:Connect(function(obj)
+        if obj:IsA("Tool") and _G.Z_GunMods_Active then
+            -- El arma entra a tu inventario. Esperamos 0.3s y le metemos todo.
+            task.wait(0.3)
+            _G.Z_ForceGunScan()
+        end
+    end))
+end
+
+if Player:FindFirstChild("Backpack") then HookBackpack(Player.Backpack) end
+
+table.insert(connections, Player.CharacterAdded:Connect(function(char)
+    local bp = Player:WaitForChild("Backpack", 5)
+    if bp then HookBackpack(bp) end
+    
+    table.insert(connections, char.ChildAdded:Connect(function(obj)
+        if obj:IsA("Tool") and _G.Z_GunMods_Active then
+            task.wait(0.3)
+            _G.Z_ForceGunScan()
+        end
+    end))
+end))
+
+-- Ejecución inicial
+if _G.Z_GunMods_Active then _G.Z_ForceGunScan() end
+
+-- // 🔄 EL TRUCO FÍSICO (1 SEGUNDO DE PAUSA = 0% CPU) // --
+task.spawn(function()
+    while gunLoopActive do
+        task.wait(1) -- Solo se ejecuta 1 vez por segundo, tu cel ni lo siente
+        
+        if _G.Z_GunMods_Active and _G.Z_GunMods_InfAmmo then
+            pcall(function()
+                local char = Player.Character
+                local tool = char and char:FindFirstChildOfClass("Tool")
+                -- Actualiza los valores internos (Hi-Point fix) de lo que tienes en la mano
+                if tool then
+                    for _, obj in pairs(tool:GetDescendants()) do
+                        if obj:IsA("IntValue") or obj:IsA("NumberValue") then
+                            local n = obj.Name:lower()
+                            if n:find("ammo") or n:find("gun") or n:find("mag") then
+                                obj.Value = 999999 
+                            end
+                        end
+                    end
+                end
+            end)
+        end
+    end
+end)
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+-- ==============================================================================
+-- 🧠 CEREBRO: AUTO-FARM v44.8.4 "TRUE FIX EDITION" (SMART INV + TRUE DEATH)
+-- Optimizado por Zslx: Adiós Anclaje. Fix definitivo del Fling en primer TP.
+-- ==============================================================================
+local p = game.Players.LocalPlayer
+local rs = game:GetService("RunService")
+local vim = game:GetService("VirtualInputManager") 
+
+local char, hum, hrp
+local miAsiento = nil 
+local noclipLoop = nil
+local farmLoopActive = false
+
+local function refreshVars()
+    char = p.Character or p.CharacterAdded:Wait()
+    hum = char:WaitForChild("Humanoid")
+    hrp = char:WaitForChild("HumanoidRootPart")
+end
+refreshVars()
+
+local items = {["Fake Designer Bag"]=3, ["Fake Watch"]=3, ["Sarsaparilla"]=4}
+
+local function getQty(name)
+    local c, s = 0, name:lower()
+    for _, v in pairs(p.Backpack:GetChildren()) do if v.Name:lower():find(s) then c+=1 end end
+    local t = char:FindFirstChildWhichIsA("Tool"); if t and t.Name:lower():find(s) then c+=1 end
+    return c
+end
+
+local function hasAllItems()
+    for item, maxQty in pairs(items) do
+        if getQty(item) < maxQty then return false end
+    end
+    return true
+end
+
+local function hasNoItems()
+    for item, _ in pairs(items) do
+        if getQty(item) > 0 then return false end
+    end
+    return true
+end
+
+-- 3. MOTOR NOCLIP
+local function toggleNoclip(state)
+    if state then
+        if not noclipLoop then
+            noclipLoop = rs.Stepped:Connect(function()
+                if not char then return end
+                for _, v in pairs(char:GetDescendants()) do if v:IsA("BasePart") then v.CanCollide = false end end
+            end)
+        end
+    else
+        if noclipLoop then noclipLoop:Disconnect(); noclipLoop = nil end
+    end
+end
+
+-- ==========================================================
+-- CANDADO DE ASIENTO ULTRA RÁPIDO (INSTA-SIT CON FIX DE PEGAMENTO)
+-- ==========================================================
+local function EnsureSit()
+    if not miAsiento or not _G.Z_Farm_Active then return end
+    toggleNoclip(false)
+    
+    if hum.SeatPart == miAsiento then return end 
+
+    while hum.SeatPart ~= miAsiento and _G.Z_Farm_Active do
+        hrp.CFrame = miAsiento.CFrame 
+        miAsiento:Sit(hum)
+        task.wait() 
+    end
+    -- FIX: Le damos 0.2s al servidor para que procese el "SeatWeld" y no te deje tirado
+    task.wait(0.2)
+end
+
+-- ==========================================================
+-- MOTOR TP VEHICLE (CERO FLING, CERO ANCLAJE)
+-- ==========================================================
+local function safeVehicleTP(dest)
+    if not miAsiento or not miAsiento.Parent then return end 
+    local veh = miAsiento:FindFirstAncestorOfClass("Model")
+    if veh then
+        -- 1. Matar momentum ANTES del TP
+        for _, part in pairs(veh:GetDescendants()) do 
+            if part:IsA("BasePart") then 
+                part.AssemblyLinearVelocity = Vector3.zero 
+                part.AssemblyAngularVelocity = Vector3.zero 
+            end 
+        end
+        local _, sz = veh:GetBoundingBox()
+        
+        -- 2. Teletransportar
+        veh:PivotTo(CFrame.new(dest.X, dest.Y + (sz.Y/2) + 0.3, dest.Z) * CFrame.Angles(0, math.rad(3), 0))
+        
+        -- 3. FIX FLING PRIMER TP: Volver a matar momentum DESPUÉS del TP al instante
+        for _, part in pairs(veh:GetDescendants()) do 
+            if part:IsA("BasePart") then 
+                part.AssemblyLinearVelocity = Vector3.zero 
+                part.AssemblyAngularVelocity = Vector3.zero 
+            end 
+        end
+        
+        task.wait(0.1) 
+    end
+end
+
+-- ==========================================================
+-- 5. MOTORES INTELIGENTES
+-- ==========================================================
+local function SmartBuy()
+    local endTime = tick() + 8 
+    while not hasAllItems() and tick() < endTime and _G.Z_Farm_Active do
+        for _, obj in pairs(workspace:GetDescendants()) do
+            if obj:IsA("ProximityPrompt") then
+                local pPart = obj.Parent:IsA("BasePart") and obj.Parent or obj.Parent.Parent
+                if pPart and pPart:IsA("BasePart") and (pPart.Position - hrp.Position).Magnitude <= 18 then
+                    local txt = (obj.ObjectText .. obj.ActionText):lower()
+                    for item, maxQty in pairs(items) do
+                        if txt:find(item:lower()) and getQty(item) < maxQty then
+                            obj.HoldDuration = 0; fireproximityprompt(obj); task.wait() 
+                        end
+                    end
+                end
+            end
+        end
+        task.wait(0.03)
+    end
+end
+
+local function SmartSell()
+    local endTime = tick() + 8
+    while not hasNoItems() and tick() < endTime and _G.Z_Farm_Active do
+        for _, obj in pairs(workspace:GetDescendants()) do
+            if obj:IsA("ProximityPrompt") then
+                local pPart = obj.Parent:IsA("BasePart") and obj.Parent or obj.Parent.Parent
+                if pPart and pPart:IsA("BasePart") and (pPart.Position - hrp.Position).Magnitude <= 18 then
+                    local txt = (obj.ObjectText .. obj.ActionText):lower()
+                    if txt:find("sell") or txt:find("smuggle") then
+                        obj.HoldDuration = 0; fireproximityprompt(obj); task.wait(0.05)
+                    end
+                end
+            end
+        end
+        task.wait(0.1)
+    end
+end
+
+local function SmartWash()
+    local endTime = tick() + 8
+    while getQty("Briefcase") > 0 and tick() < endTime and _G.Z_Farm_Active do
+        for _, obj in pairs(workspace:GetDescendants()) do
+            if obj:IsA("ProximityPrompt") then
+                local pPart = obj.Parent:IsA("BasePart") and obj.Parent or obj.Parent.Parent
+                if pPart and pPart:IsA("BasePart") and (pPart.Position - hrp.Position).Magnitude <= 18 then
+                    local txt = (obj.ObjectText .. obj.ActionText):lower()
+                    if txt:find("laundry") or txt:find("dirty") then
+                        obj.HoldDuration = 0; fireproximityprompt(obj); task.wait(0.05)
+                    end
+                end
+            end
+        end
+        task.wait(0.1)
+    end
+end
+
+-- ==========================================================
+-- FASE 1 PREMIUM: SIMULADOR DE CLICS
+-- ==========================================================
+local function forceUIClick(textoBoton)
+    for _, gui in pairs(p.PlayerGui:GetDescendants()) do
+        if gui:IsA("TextButton") and gui.Visible and gui.AbsolutePosition.X > 0 then
+            if gui.Text:lower():find(textoBoton:lower()) then
+                local x = gui.AbsolutePosition.X + (gui.AbsoluteSize.X / 2)
+                local y = gui.AbsolutePosition.Y + (gui.AbsoluteSize.Y / 2) + 36 
+                vim:SendMouseButtonEvent(x, y, 0, true, game, 1)
+                task.wait(0.05)
+                vim:SendMouseButtonEvent(x, y, 0, false, game, 1)
+                return true
+            end
+        end
+    end
+    return false
+end
+
+local function AutoGetCarPremium()
+    local endT = tick() + 12 
+    hrp.CFrame = CFrame.new(-1947, 3.5, 55); task.wait(0.3) 
+
+    while not hum.SeatPart and tick() < endT and _G.Z_Farm_Active do
+        for _, obj in pairs(workspace:GetDescendants()) do
+            if obj:IsA("ProximityPrompt") and (obj.Position - hrp.Position).Magnitude < 15 then
+                local txt = (obj.ObjectText .. obj.ActionText):lower()
+                if txt:find("spawn") or txt:find("vehicle") then
+                    obj.HoldDuration = 0; fireproximityprompt(obj); task.wait(0.5) 
+                end
+            end
+        end
+
+        if forceUIClick("select") then task.wait(0.5) end
+        if forceUIClick("spawn") then task.wait(1.5) end 
+
+        -- NOS SENTAMOS Y ESPERAMOS SIN ANCLAR NADA
+        for _, obj in pairs(workspace:GetDescendants()) do
+            if obj:IsA("VehicleSeat") and (obj.Position - hrp.Position).Magnitude < 30 then
+                obj:Sit(hum)
+                if hum.SeatPart then
+                    miAsiento = hum.SeatPart
+                    task.wait(1) -- Solo dejamos que el server lo procese natural we
+                    return 
+                end
+            end
+        end
+        task.wait(0.2)
+    end
+end
+
+-- ==========================================================
+-- LOOP MAESTRO Y EJECUCIÓN (LITE)
+-- ==========================================================
+_G.Z_StartFarming = function()
+    if farmLoopActive then return end
+    farmLoopActive = true
+    
+    -- CAM LOCK AL INICIAR
+    p.CameraMaxZoomDistance = 10
+    p.CameraMinZoomDistance = 10
+
+    task.spawn(function()
+        while _G.Z_Farm_Active do
+            task.wait(0.2) 
+            pcall(function()
+                refreshVars()
+                
+                if not miAsiento or not miAsiento.Parent then
+                    if hum.SeatPart then 
+                        miAsiento = hum.SeatPart 
+                    else
+                        AutoGetCarPremium() 
+                        return 
+                    end
+                end
+                
+                EnsureSit()
+
+                -- ===============================================
+                -- FASE 2/3: MERCADO
+                -- ===============================================
+                if _G.Z_Farm_Active then
+                    safeVehicleTP(Vector3.new(-1821, 2, 15))
+                    hum.Sit = false; task.wait(0.1) 
+                    toggleNoclip(true)
+                    
+                    hrp.CFrame = CFrame.new(-1843, 3.5, 8); task.wait(0.1) 
+                    SmartBuy() 
+                    
+                    if not hasAllItems() and _G.Z_Farm_Active then
+                        hrp.CFrame = CFrame.new(-1831, 3.5, 11); task.wait(0.1)
+                        SmartBuy()
+                    end
+                    
+                    EnsureSit() 
+                end
+
+                -- ===============================================
+                -- FASE 6: ENTREGA
+                -- ===============================================
+                if _G.Z_Farm_Active then
+                    safeVehicleTP(Vector3.new(3486, 2, -761)) 
+                    hum.Sit = false; task.wait(0.1)
+                    toggleNoclip(true)
+                    
+                    hrp.CFrame = CFrame.new(3500, 3.5, -752) * CFrame.Angles(0, math.rad(246), 0) 
+                    workspace.CurrentCamera.CFrame = CFrame.new(hrp.Position - (hrp.CFrame.LookVector * 10) + Vector3.new(0, 2, 0), hrp.Position)
+                    task.wait(0.1)
+                    
+                    SmartSell()
+
+                    EnsureSit()
+                end
+
+                -- ===============================================
+                -- FASE 10: LAVADO
+                -- ===============================================
+                if getQty("Briefcase") > 0 and _G.Z_Farm_Active then
+                    safeVehicleTP(Vector3.new(-1872, 2, -6))
+                    hum.Sit = false; task.wait(0.1)
+                    toggleNoclip(true)
+                    hrp.CFrame = CFrame.new(-1847, 3.5, -9); task.wait(0.1) 
+                    
+                    SmartWash()
+
+                    EnsureSit()
+                end
+            end)
+        end
+        
+        -- ==========================================================
+        -- APAGADO DEL HACK (TRUE DEATH Y REINICIO DE CÁMARA)
+        -- ==========================================================
+        farmLoopActive = false
+        toggleNoclip(false)
+        p.CameraMaxZoomDistance = 128 
+        p.CameraMinZoomDistance = 0.5 
+        miAsiento = nil 
+        pcall(function()
+            if hum then 
+                hum.Health = 0 
+            end
+        end)
+    end)
+end
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+-- // ⚙️ VARIABLES GLOBALES (ESP PRO + TEAM CHECK) // --
+_G.Z_ESP_Master = false
+_G.Z_ESP_Boxes = true
+_G.Z_ESP_HealthBar = true
+_G.Z_ESP_TeamCheck = false -- <--- Variable única para el ESP (No se cruza con Tracers)
+_G.Z_ESP_Color = Color3.fromRGB(0, 255, 0)
+
+task.spawn(function()
+    local RunService = game:GetService("RunService")
+    local Players = game:GetService("Players")
+    local Camera = workspace.CurrentCamera
+    local CoreGui = game:GetService("CoreGui")
+    local LP = Players.LocalPlayer
+
+    -- Limpieza por si reinicias el script
+    if CoreGui:FindFirstChild("Z_ESP_LITE") then CoreGui.Z_ESP_LITE:Destroy() end
+
+    local ESPGui = Instance.new("ScreenGui", CoreGui)
+    ESPGui.Name = "Z_ESP_LITE"
+    ESPGui.IgnoreGuiInset = true 
+
+    local ESP_Data = {}
+
+    -- // 🛡️ FUNCIÓN DE BANDOS EXCLUSIVA PARA ESP // --
+    local function GetSideESP(player)
+        local team = player.Team and player.Team.Name or ""
+        local law = {"Border Patrol", "US Army", "FBI", "BORTAC", "State Trooper", "HSI"}
+        local civ = {"Civilian", "Civil"}
+        
+        if table.find(law, team) then return "Law" end
+        if table.find(civ, team) then return "Civil" end
+        return "Neutral"
+    end
+
+    local function CreateESP(player)
+        if ESP_Data[player] then return end
+        
+        local box = Instance.new("Frame", ESPGui)
+        box.BackgroundColor3 = Color3.new(1,1,1)
+        box.BackgroundTransparency = 1
+        box.Visible = false
+        
+        local stroke = Instance.new("UIStroke", box)
+        stroke.Thickness = 1.5
+        stroke.Color = _G.Z_ESP_Color
+
+        local bg = Instance.new("Frame", ESPGui)
+        bg.BackgroundColor3 = Color3.fromRGB(0, 0, 0)
+        bg.BackgroundTransparency = 0.5
+        bg.BorderSizePixel = 0
+        bg.Visible = false
+
+        local fill = Instance.new("Frame", bg)
+        fill.AnchorPoint = Vector2.new(0, 1)
+        fill.Position = UDim2.new(0, 0, 1, 0)
+        fill.Size = UDim2.new(1, 0, 1, 0)
+        fill.BackgroundColor3 = Color3.fromRGB(0, 255, 0)
+        fill.BorderSizePixel = 0
+
+        ESP_Data[player] = {Box = box, Bg = bg, Fill = fill, Stroke = stroke}
+    end
+
+    local function RemoveESP(player)
+        if ESP_Data[player] then
+            pcall(function()
+                ESP_Data[player].Box:Destroy()
+                ESP_Data[player].Bg:Destroy()
+            end)
+            ESP_Data[player] = nil
+        end
+    end
+
+    -- Inicializar
+    for _, p in pairs(Players:GetPlayers()) do if p ~= LP then CreateESP(p) end end
+    Players.PlayerAdded:Connect(function(p) if p ~= LP then CreateESP(p) end end)
+    Players.PlayerRemoving:Connect(RemoveESP)
+
+    -- // 🔄 MOTOR DE RENDER // --
+    RunService.RenderStepped:Connect(function()
+        local mySide = GetSideESP(LP)
+
+        for player, data in pairs(ESP_Data) do
+            local char = player.Character
+            local hum = char and char:FindFirstChildOfClass("Humanoid")
+            local hrp = char and char:FindFirstChild("HumanoidRootPart")
+            local head = char and char:FindFirstChild("Head")
+
+            -- 1. VALIDACIÓN BÁSICA (Master, Muerto, Desconectado)
+            if not _G.Z_ESP_Master or not char or not hum or not hrp or not head or hum.Health <= 0 then
+                data.Box.Visible = false
+                data.Bg.Visible = false
+                continue
+            end
+
+            -- 2. 🤖 SMART TEAM CHECK (ESPECÍFICO DE ESP)
+            if _G.Z_ESP_TeamCheck then
+                local targetSide = GetSideESP(player)
+                -- Si somos del mismo equipo, ocultamos el ESP de este jugador
+                if mySide == targetSide and mySide ~= "Neutral" then
+                    data.Box.Visible = false
+                    data.Bg.Visible = false
+                    continue
+                end
+            end
+
+            local headPos, onScreen = Camera:WorldToViewportPoint(head.Position + Vector3.new(0, 0.5, 0))
+            local legPos, _ = Camera:WorldToViewportPoint(hrp.Position - Vector3.new(0, 3, 0))
+
+            if onScreen then
+                local height = math.abs(headPos.Y - legPos.Y)
+                local width = height / 1.8 
+
+                -- 📦 DIBUJO DE LA CAJA
+                if _G.Z_ESP_Boxes then
+                    data.Stroke.Color = _G.Z_ESP_Color 
+                    data.Box.Size = UDim2.new(0, width, 0, height)
+                    data.Box.Position = UDim2.new(0, headPos.X - (width / 2), 0, headPos.Y)
+                    data.Box.Visible = true
+                else
+                    data.Box.Visible = false
+                end
+
+                -- 🏥 DIBUJO DE BARRA DE VIDA
+                if _G.Z_ESP_HealthBar then
+                    data.Bg.Size = UDim2.new(0, 2, 0, height) 
+                    data.Bg.Position = UDim2.new(0, headPos.X - (width / 2) - 4, 0, headPos.Y) 
+                    data.Bg.Visible = true
+
+                    local hpPercent = math.clamp(hum.Health / hum.MaxHealth, 0, 1)
+                    data.Fill.Size = UDim2.new(1, 0, hpPercent, 0)
+                    data.Fill.BackgroundColor3 = Color3.fromHSV(hpPercent * 0.3, 1, 1)
+                else
+                    data.Bg.Visible = false
+                end
+            else
+                data.Box.Visible = false
+                data.Bg.Visible = false
+            end
+        end
+    end)
+end)
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+-- // ⚙️ VARIABLES GLOBALES (TRACERS PRO + TEAM CHECK) // --
+_G.Z_Tracers_Enabled = false
+_G.Z_Tracer_TeamCheck = false -- Variable única para el filtro de equipos
+_G.Z_Tracer_Origin = "Abajo"
+_G.Z_Tracer_Color = Color3.fromRGB(0, 255, 0)
+_G.Z_Tracer_Width = 1.5
+_G.Z_Tracer_Transparency = 0.5
+
+task.spawn(function()
+    local RunService = game:GetService("RunService")
+    local Players = game:GetService("Players")
+    local Camera = workspace.CurrentCamera
+    local CoreGui = game:GetService("CoreGui")
+    local LP = Players.LocalPlayer
+
+    -- Limpieza de seguridad
+    if CoreGui:FindFirstChild("Z_TRACERS_LITE") then
+        CoreGui.Z_TRACERS_LITE:Destroy()
+    end
+
+    local TracerGui = Instance.new("ScreenGui", CoreGui)
+    TracerGui.Name = "Z_TRACERS_LITE"
+    TracerGui.IgnoreGuiInset = true 
+
+    local Tracer_Data = {}
+
+    -- // 🛡️ FUNCIÓN DE DETECCIÓN DE BANDOS // --
+    local function GetSide(targetPlayer)
+        local team = targetPlayer.Team and targetPlayer.Team.Name or ""
+        local lawTeams = {"Border Patrol", "US Army", "FBI", "BORTAC", "State Trooper", "HSI"}
+        local civTeams = {"Civilian", "Civil"}
+        
+        if table.find(lawTeams, team) then return "Law" end
+        if table.find(civTeams, team) then return "Civil" end
+        return "Neutral"
+    end
+
+    local function CreateTracer(player)
+        if Tracer_Data[player] then return end
+        local line = Instance.new("Frame")
+        line.Name = "TracerLine"
+        line.AnchorPoint = Vector2.new(0.5, 0.5) 
+        line.BackgroundColor3 = _G.Z_Tracer_Color
+        line.BackgroundTransparency = _G.Z_Tracer_Transparency
+        line.BorderSizePixel = 0
+        line.Visible = false
+        line.Parent = TracerGui
+        Tracer_Data[player] = line
+    end
+
+    local function RemoveTracer(player)
+        if Tracer_Data[player] then
+            pcall(function() Tracer_Data[player]:Destroy() end)
+            Tracer_Data[player] = nil
+        end
+    end
+
+    -- Inicialización
+    for _, p in pairs(Players:GetPlayers()) do if p ~= LP then CreateTracer(p) end end
+    Players.PlayerAdded:Connect(function(p) if p ~= LP then CreateTracer(p) end end)
+    Players.PlayerRemoving:Connect(RemoveTracer)
+
+    -- // 🔄 MOTOR DE RENDER 360° (LITE ENGINE) // --
+    RunService.RenderStepped:Connect(function()
+        local ViewportSize = Camera.ViewportSize
+        local mySide = GetSide(LP)
+        
+        -- 📍 DETERMINAR ORIGEN
+        local Origin = Vector2.new(ViewportSize.X / 2, ViewportSize.Y)
+        if _G.Z_Tracer_Origin == "Arriba" then
+            Origin = Vector2.new(ViewportSize.X / 2, 0)
+        elseif _G.Z_Tracer_Origin == "Centro" then
+            Origin = Vector2.new(ViewportSize.X / 2, ViewportSize.Y / 2)
+        end
+
+        for player, line in pairs(Tracer_Data) do
+            local char = player.Character
+            local head = char and char:FindFirstChild("Head")
+            local hum = char and char:FindFirstChildOfClass("Humanoid")
+
+            -- 1. VALIDACIÓN BÁSICA
+            if not _G.Z_Tracers_Enabled or not head or not hum or hum.Health <= 0 then
+                line.Visible = false
+                continue
+            end
+
+            -- 2. 🤖 SMART TEAM CHECK (FILTRO AUTOMÁTICO)
+            if _G.Z_Tracer_TeamCheck then
+                local targetSide = GetSide(player)
+                -- Si somos del mismo equipo (y no somos neutrales), ocultamos la línea
+                if mySide == targetSide and mySide ~= "Neutral" then
+                    line.Visible = false
+                    continue
+                end
+            end
+
+            local headPos, onScreen = Camera:WorldToViewportPoint(head.Position)
+            local Target
+
+            -- LÓGICA 360° ANTI-SHAKE
+            if onScreen then
+                Target = Vector2.new(headPos.X, headPos.Y)
+            else
+                local centerScreen = Vector2.new(ViewportSize.X / 2, ViewportSize.Y / 2)
+                local fakePos = Vector2.new(headPos.X, headPos.Y)
+                if headPos.Z < 0 then
+                    fakePos = Vector2.new(
+                        centerScreen.X + (centerScreen.X - headPos.X), 
+                        centerScreen.Y + (centerScreen.Y - headPos.Y)
+                    )
+                end
+                local direction = (fakePos - centerScreen).Unit
+                Target = centerScreen + (direction * (ViewportSize.X * 1.5))
+            end
+            
+            -- MATEMÁTICAS DE DIBUJO
+            local Distance = (Target - Origin).Magnitude
+            local Center = (Target + Origin) / 2
+            local Angle = math.atan2(Target.Y - Origin.Y, Target.X - Origin.X)
+
+            -- ACTUALIZACIÓN EN TIEMPO REAL
+            line.Size = UDim2.new(0, Distance, 0, _G.Z_Tracer_Width or 1.5) 
+            line.BackgroundTransparency = _G.Z_Tracer_Transparency or 0.5
+            line.BackgroundColor3 = _G.Z_Tracer_Color
+            line.Position = UDim2.new(0, Center.X, 0, Center.Y)
+            line.Rotation = math.deg(Angle)
+            line.Visible = true
+        end
+    end)
+end)
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+-- // ⚙️ VARIABLES GLOBALES (ESP 3D X-RAY) // --
+_G.Z_ESP3D_Enabled = false
+_G.Z_ESP3D_TeamCheck = false 
+_G.Z_ESP3D_Color = Color3.fromRGB(255, 0, 0)
+
+task.spawn(function()
+    local Players = game:GetService("Players")
+    local RunService = game:GetService("RunService")
+    local CoreGui = game:GetService("CoreGui")
+    local LP = Players.LocalPlayer
+
+    if CoreGui:FindFirstChild("Z_3D_STORAGE") then CoreGui.Z_3D_STORAGE:Destroy() end
+    local Storage = Instance.new("Folder", CoreGui)
+    Storage.Name = "Z_3D_STORAGE"
+
+    local espData = {}
+
+    -- // 🛡️ DETECTOR DE BANDOS (FULANITO 3) // --
+    local function GetSide3D(player)
+        local team = player.Team and player.Team.Name or ""
+        local law = {"Border Patrol", "US Army", "FBI", "BORTAC", "State Trooper", "HSI"}
+        local civ = {"Civilian", "Civil"}
+        
+        if table.find(law, team) then return "Law" end
+        if table.find(civ, team) then return "Civil" end
+        return "Neutral"
+    end
+
+    local function Create3D(player)
+        if player == LP or espData[player] then return end
+        
+        -- USAMOS ADORNMENT PARA QUE TRANSPASE PAREDES SIN ERRORES
+        local box = Instance.new("BoxHandleAdornment")
+        box.Name = "Z_3D_Wire"
+        box.AlwaysOnTop = true
+        box.ZIndex = 10
+        box.Transparency = 0.7 -- Un poco transparente para que se vea fino
+        box.Parent = Storage
+        espData[player] = box
+    end
+
+    for _, p in pairs(Players:GetPlayers()) do Create3D(p) end
+    Players.PlayerAdded:Connect(Create3D)
+    Players.PlayerRemoving:Connect(function(p) 
+        if espData[p] then 
+            pcall(function() espData[p]:Destroy() end) 
+            espData[p] = nil 
+        end 
+    end)
+
+    -- // 🔄 MOTOR DE RENDER 3D X-RAY // --
+    RunService.RenderStepped:Connect(function()
+        local mySide = GetSide3D(LP)
+
+        for player, box in pairs(espData) do
+            local char = player.Character
+            local hrp = char and char:FindFirstChild("HumanoidRootPart")
+            local hum = char and char:FindFirstChildOfClass("Humanoid")
+
+            -- VALIDACIÓN
+            if not _G.Z_ESP3D_Enabled or not char or not hrp or not hum or hum.Health <= 0 then
+                box.Visible = false
+                box.Adornee = nil
+                continue
+            end
+
+            -- SMART TEAM CHECK
+            if _G.Z_ESP3D_TeamCheck then
+                local targetSide = GetSide3D(player)
+                if mySide == targetSide and mySide ~= "Neutral" then
+                    box.Visible = false
+                    box.Adornee = nil
+                    continue
+                end
+            end
+
+            -- DIBUJO QUE TRANSPASA PAREDES
+            pcall(function()
+                box.Adornee = hrp -- Se ancla al pecho
+                box.Color3 = _G.Z_ESP3D_Color
+                
+                -- Ajustamos el tamaño al cuerpo del mono
+                box.Size = char:GetExtentsSize() 
+                box.CFrame = CFrame.new(0, 0, 0) -- Centrado al Adornee
+                
+                box.Visible = true
+            end)
+        end
+    end)
+end)
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+-- // ⚙️ VARIABLES GLOBALES (SKELETON PRO CONFIG) // --
+_G.Z_Skeleton_Enabled = false
+_G.Z_Skeleton_TeamCheck = false -- <--- Fulanito 4: Independiente de los otros
+_G.Z_Skeleton_Color = Color3.fromRGB(0, 255, 0)
+
+task.spawn(function()
+    local Players = game:GetService("Players")
+    local RunService = game:GetService("RunService")
+    local Camera = workspace.CurrentCamera
+    local LP = Players.LocalPlayer
+
+    local Z_Skeleton_Data = {}
+
+    -- // 🛡️ DETECTOR DE BANDOS (EXCLUSIVO SKELETON) // --
+    local function GetSideSkel(player)
+        local team = player.Team and player.Team.Name or ""
+        local law = {"Border Patrol", "US Army", "FBI", "BORTAC", "State Trooper", "HSI"}
+        local civ = {"Civilian", "Civil"}
+        if table.find(law, team) then return "Law" end
+        if table.find(civ, team) then return "Civil" end
+        return "Neutral"
+    end
+
+    -- Función para crear líneas (Drawing)
+    local function Z_CreateSkelLine()
+        local line = Drawing.new("Line")
+        line.Thickness = 1.5 
+        line.Transparency = 1
+        line.Visible = false
+        return line
+    end
+
+    -- Estructura de huesos única
+    local function Z_BuildSkeleton()
+        return {
+            Spine = {Z_CreateSkelLine(), Z_CreateSkelLine()}, 
+            Arms = {Z_CreateSkelLine(), Z_CreateSkelLine(), Z_CreateSkelLine(), Z_CreateSkelLine()}, 
+            Legs = {Z_CreateSkelLine(), Z_CreateSkelLine(), Z_CreateSkelLine(), Z_CreateSkelLine()}  
+        }
+    end
+
+    local function Z_ClearSkeleton(player)
+        if Z_Skeleton_Data[player] then
+            for _, group in pairs(Z_Skeleton_Data[player]) do
+                for _, line in pairs(group) do line:Remove() end
+            end
+            Z_Skeleton_Data[player] = nil
+        end
+    end
+
+    local function Z_JoinNodes(line, p1, p2, color)
+        local success, _ = pcall(function()
+            local pos1, vis1 = Camera:WorldToViewportPoint(p1.Position)
+            local pos2, vis2 = Camera:WorldToViewportPoint(p2.Position)
+            if vis1 and vis2 then
+                line.From = Vector2.new(pos1.X, pos1.Y)
+                line.To = Vector2.new(pos2.X, pos2.Y)
+                line.Color = color
+                line.Visible = true
+            else
+                line.Visible = false
+            end
+        end)
+        if not success then line.Visible = false end
+    end
+
+    Players.PlayerRemoving:Connect(Z_ClearSkeleton)
+
+    -- // 🔄 MOTOR DE RENDER SKELETON // --
+    RunService.RenderStepped:Connect(function()
+        local mySide = GetSideSkel(LP)
+        local color = _G.Z_Skeleton_Color
+
+        for _, player in pairs(Players:GetPlayers()) do
+            if player ~= LP then
+                local char = player.Character
+                local hum = char and char:FindFirstChildOfClass("Humanoid")
+                local hrp = char and char:FindFirstChild("HumanoidRootPart")
+
+                -- 1. VALIDACIÓN BÁSICA
+                if _G.Z_Skeleton_Enabled and char and char.Parent and hum and hum.Health > 0 and hrp then
+                    
+                    -- 2. 🤖 SMART TEAM CHECK (FULANITO 4)
+                    if _G.Z_Skeleton_TeamCheck then
+                        local targetSide = GetSideSkel(player)
+                        if mySide == targetSide and mySide ~= "Neutral" then
+                            if Z_Skeleton_Data[player] then
+                                for _, g in pairs(Z_Skeleton_Data[player]) do for _, l in pairs(g) do l.Visible = false end end
+                            end
+                            continue
+                        end
+                    end
+
+                    if not Z_Skeleton_Data[player] then Z_Skeleton_Data[player] = Z_BuildSkeleton() end
+                    local skel = Z_Skeleton_Data[player]
+
+                    -- DETECCIÓN R15 / R6
+                    if char:FindFirstChild("UpperTorso") then -- R15
+                        Z_JoinNodes(skel.Spine[1], char.Head, char.UpperTorso, color)
+                        Z_JoinNodes(skel.Spine[2], char.UpperTorso, char.LowerTorso, color)
+                        Z_JoinNodes(skel.Arms[1], char.UpperTorso, char.LeftUpperArm, color)
+                        Z_JoinNodes(skel.Arms[2], char.LeftUpperArm, char.LeftHand, color)
+                        Z_JoinNodes(skel.Arms[3], char.UpperTorso, char.RightUpperArm, color)
+                        Z_JoinNodes(skel.Arms[4], char.RightUpperArm, char.RightHand, color)
+                        Z_JoinNodes(skel.Legs[1], char.LowerTorso, char.LeftUpperLeg, color)
+                        Z_JoinNodes(skel.Legs[2], char.LeftUpperLeg, char.LeftFoot, color)
+                        Z_JoinNodes(skel.Legs[3], char.LowerTorso, char.RightUpperLeg, color)
+                        Z_JoinNodes(skel.Legs[4], char.RightUpperLeg, char.RightFoot, color)
+                    elseif char:FindFirstChild("Torso") then -- R6
+                        Z_JoinNodes(skel.Spine[1], char.Head, char.Torso, color)
+                        Z_JoinNodes(skel.Arms[1], char.Torso, char["Left Arm"], color)
+                        Z_JoinNodes(skel.Arms[3], char.Torso, char["Right Arm"], color)
+                        Z_JoinNodes(skel.Legs[1], char.Torso, char["Left Leg"], color)
+                        Z_JoinNodes(skel.Legs[3], char.Torso, char["Right Leg"], color)
+                        
+                        -- Apagamos R15 extras
+                        skel.Spine[2].Visible, skel.Arms[2].Visible, skel.Arms[4].Visible, skel.Legs[2].Visible, skel.Legs[4].Visible = false, false, false, false, false
+                    end
+                else
+                    if Z_Skeleton_Data[player] then
+                        for _, g in pairs(Z_Skeleton_Data[player]) do for _, l in pairs(g) do l.Visible = false end end
+                    end
+                end
+            end
+        end
+    end)
+end)
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+-- // ⚙️ VARIABLES GLOBALES (TEAM NAMES CONFIG) // --
+_G.Z_ESP_TeamNames_Enabled = false
+_G.Z_ESP_TeamNames_SmartCheck = false -- <--- Fulanito 5: Único para este motor
+_G.Z_ESP_TeamNames_MaxDist = 600
+
+task.spawn(function()
+    local Players = game:GetService("Players")
+    local RunService = game:GetService("RunService")
+    local Camera = workspace.CurrentCamera
+    local LP = Players.LocalPlayer
+
+    local Z_TeamLabels = {}
+
+    -- // 🛡️ DETECTOR DE BANDOS (EXCLUSIVO TEAM NAMES) // --
+    local function Z_GetTeamSide(player)
+        local team = player.Team and player.Team.Name or ""
+        local law = {"Border Patrol", "US Army", "FBI", "BORTAC", "State Trooper", "HSI"}
+        local civ = {"Civilian", "Civil"}
+        if table.find(law, team) then return "Law" end
+        if table.find(civ, team) then return "Civil" end
+        return "Neutral"
+    end
+
+    -- Función para crear el texto (Drawing Lib)
+    local function Z_CreateLabel()
+        local text = Drawing.new("Text")
+        text.Center = true
+        text.Outline = true
+        text.Size = 16
+        text.Visible = false
+        text.Transparency = 1
+        return text
+    end
+
+    local function Z_RemoveLabel(player)
+        if Z_TeamLabels[player] then
+            Z_TeamLabels[player]:Remove()
+            Z_TeamLabels[player] = nil
+        end
+    end
+
+    Players.PlayerRemoving:Connect(Z_RemoveLabel)
+
+    -- [[ LOOP MAESTRO DE RENDERIZADO ]]
+    RunService.RenderStepped:Connect(function()
+        local mySide = Z_GetTeamSide(LP)
+
+        for _, player in pairs(Players:GetPlayers()) do
+            if player ~= LP then
+                local char = player.Character
+                local head = char and char:FindFirstChild("Head")
+                local hum = char and char:FindFirstChildOfClass("Humanoid")
+
+                -- 1. VALIDACIÓN BÁSICA
+                if _G.Z_ESP_TeamNames_Enabled and char and head and hum and hum.Health > 0 then
+                    
+                    -- 2. 🤖 SMART TEAM CHECK (FULANITO 5)
+                    if _G.Z_ESP_TeamNames_SmartCheck then
+                        local targetSide = Z_GetTeamSide(player)
+                        if mySide == targetSide and mySide ~= "Neutral" then
+                            if Z_TeamLabels[player] then Z_TeamLabels[player].Visible = false end
+                            continue
+                        end
+                    end
+
+                    if not Z_TeamLabels[player] then Z_TeamLabels[player] = Z_CreateLabel() end
+                    local label = Z_TeamLabels[player]
+
+                    -- Posición y Distancia
+                    local pos, onScreen = Camera:WorldToViewportPoint(head.Position + Vector3.new(0, 2.5, 0))
+                    local dist = (Camera.CFrame.Position - head.Position).Magnitude
+
+                    if onScreen and dist < _G.Z_ESP_TeamNames_MaxDist then
+                        local healthPercent = math.clamp(hum.Health / hum.MaxHealth, 0, 1)
+                        local colorHP = Color3.fromHSV(healthPercent * 0.3, 1, 1) -- Verde a Rojo
+                        
+                        label.Text = "[" .. (player.Team and player.Team.Name or "Civilian") .. "]"
+                        label.Position = Vector2.new(pos.X, pos.Y)
+                        
+                        -- Escalado de texto (se hace chiquito a la distancia)
+                        label.Size = math.clamp(18 - (dist/40), 11, 18)
+                        label.Color = colorHP
+                        label.Visible = true
+                    else
+                        label.Visible = false
+                    end
+                else
+                    if Z_TeamLabels[player] then Z_TeamLabels[player].Visible = false end
+                end
+            end
+        end
+    end)
+end)
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+-- // ⚙️ VARIABLES GLOBALES (HITBOX COLOR & TRANS CONFIG) // --
+_G.Z_Hitbox_Enabled = false
+_G.Z_Hitbox_Mode = "Head" 
+_G.Z_Hitbox_Size = 10 
+_G.Z_Hitbox_Color = Color3.fromRGB(255, 0, 0) -- Color inicial: Rojo
+_G.Z_Hitbox_Transparency = 0.5 -- Transparencia inicial (Float)
+_G.Z_Hitbox_TeamCheck = false 
+
+task.spawn(function()
+    local Players = game:GetService("Players")
+    local RunService = game:GetService("RunService")
+    local LP = Players.LocalPlayer
+
+    local Original = {
+        Head = Vector3.new(1.2, 1.2, 1.2),
+        HRP = Vector3.new(2, 2, 1)
+    }
+
+    local function GetSideHitbox(player)
+        local team = player.Team and player.Team.Name or ""
+        local law = {"Border Patrol", "US Army", "FBI", "BORTAC", "State Trooper", "HSI"}
+        local civ = {"Civilian", "Civil"}
+        if table.find(law, team) then return "Law" end
+        if table.find(civ, team) then return "Civil" end
+        return "Neutral"
+    end
+
+    local function ResetBody(char)
+        local head = char:FindFirstChild("Head")
+        local hrp = char:FindFirstChild("HumanoidRootPart")
+        if head then 
+            head.Size = Original.Head 
+            head.Transparency = 0 
+            head.Massless = false 
+            head.CanCollide = true
+        end
+        if hrp then 
+            hrp.Size = Original.HRP 
+            hrp.Transparency = 1 
+            hrp.Massless = false 
+        end
+    end
+
+    -- // 🔄 MOTOR DE RENDER // --
+    RunService.RenderStepped:Connect(function()
+        local mySide = GetSideHitbox(LP)
+
+        for _, player in pairs(Players:GetPlayers()) do
+            if player ~= LP and player.Character then
+                local char = player.Character
+                local hum = char:FindFirstChildOfClass("Humanoid")
+                local head = char:FindFirstChild("Head")
+                local hrp = char:FindFirstChild("HumanoidRootPart")
+
+                if hum and hum.Health > 0 then
+                    local isEnemy = true
+                    if _G.Z_Hitbox_TeamCheck then
+                        local tSide = GetSideHitbox(player)
+                        if mySide == tSide and mySide ~= "Neutral" then isEnemy = false end
+                    end
+
+                    if _G.Z_Hitbox_Enabled and isEnemy then
+                        local sizeVec = Vector3.new(_G.Z_Hitbox_Size, _G.Z_Hitbox_Size, _G.Z_Hitbox_Size)
+                        local color = _G.Z_Hitbox_Color
+                        local trans = _G.Z_Hitbox_Transparency
+                        
+                        -- Aplicar según el modo seleccionado
+                        if _G.Z_Hitbox_Mode == "Head" then
+                            if head then 
+                                head.Size = sizeVec head.Color = color head.Transparency = trans 
+                                head.Massless = true head.CanCollide = false 
+                            end
+                            if hrp then hrp.Size = Original.HRP hrp.Transparency = 1 end
+                        elseif _G.Z_Hitbox_Mode == "Torso" then
+                            if hrp then 
+                                hrp.Size = sizeVec hrp.Color = color hrp.Transparency = trans 
+                                hrp.Massless = true hrp.CanCollide = false 
+                            end
+                            if head then head.Size = Original.Head head.Transparency = 0 end
+                        elseif _G.Z_Hitbox_Mode == "Huesos" then
+                            if head then head.Size = sizeVec head.Color = color head.Transparency = trans head.Massless = true head.CanCollide = false end
+                            if hrp then hrp.Size = sizeVec hrp.Color = color hrp.Transparency = trans hrp.Massless = true hrp.CanCollide = false end
+                        end
+                    else
+                        ResetBody(char)
+                    end
+                end
+            end
+        end
+    end)
+end)
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+-- // ⚙️ VARIABLES DE CONTROL (PRONE & VOID FIX) // --
+local WasDennis = false
+local DennisCFrame = nil
+local GhostPos = Vector3.new(0, 0, 0)
+local FakeClone = nil
+local CamAnchor = nil
+
+local function GetCamAnchor()
+    if not CamAnchor then
+        CamAnchor = Instance.new("Part")
+        CamAnchor.Name = "Z_Ghost_Anchor"
+        CamAnchor.Transparency = 1
+        CamAnchor.CanCollide = false
+        CamAnchor.Anchored = true
+        CamAnchor.Parent = workspace
+    end
+    return CamAnchor
+end
+
+-- // 🔄 MOTOR MODO DENNIS (PRONE UNDERGROUND) // --
+task.spawn(function()
+    local RunService = game:GetService("RunService")
+    local Players = game:GetService("Players")
+    local Camera = workspace.CurrentCamera
+    local LP = Players.LocalPlayer
+
+    RunService.RenderStepped:Connect(function()
+        local Char = LP.Character
+        local HRP = Char and Char:FindFirstChild("HumanoidRootPart")
+        local Hum = Char and Char:FindFirstChild("Humanoid")
+
+        if _G.DennisEnabled and HRP and Hum then
+            if not WasDennis then
+                WasDennis = true
+                DennisCFrame = HRP.CFrame
+                GhostPos = Vector3.new(0, 0, 0)
+                
+                -- CLON SEÑUELO (Este se queda parado normal arriba)
+                Char.Archivable = true
+                FakeClone = Char:Clone()
+                FakeClone.Name = "Z_Dennis_Decoy"
+                FakeClone.Parent = workspace
+                for _, v in pairs(FakeClone:GetDescendants()) do
+                    if v:IsA("BasePart") then v.Anchored = true v.CanCollide = false end
+                    if v:IsA("LocalScript") or v:IsA("Script") then v:Destroy() end
+                end
+                FakeClone:PivotTo(DennisCFrame)
+            end
+
+            -- 🏃 MOVIMIENTO VIRTUAL
+            local moveDir = Hum.MoveDirection
+            GhostPos = GhostPos + (moveDir * (Hum.WalkSpeed * 0.016)) 
+
+            -- 🎥 CÁMARA (Nivel Superficie)
+            local anchor = GetCamAnchor()
+            local surfacePos = DennisCFrame + GhostPos
+            anchor.Position = surfacePos.Position + Vector3.new(0, 2, 0)
+            Camera.CameraSubject = anchor
+
+            -- 🎯 EL TRUCO: Enterrado -8 studs y ACOSTADO (-90 grados)
+            -- Multiplicamos por CFrame.Angles para rotar el cuerpo
+            HRP.CFrame = (surfacePos * CFrame.new(3, -4.7, 2)) * CFrame.Angles(math.rad(-90), 0, 0)
+            HRP.AssemblyLinearVelocity = Vector3.new(0, 0, 0)
+            
+            -- 👻 INVISIBILIDAD Y SEGURIDAD
+            for _, part in pairs(Char:GetDescendants()) do
+                if part:IsA("BasePart") then
+                    part.CanCollide = false 
+                    part.LocalTransparencyModifier = 1 
+                end
+            end
+            -- Forzamos que no se intente parar
+            Hum.PlatformStand = true 
+        else
+            -- 🔙 REGRESO SEGURO (ANTI-VACÍO)
+            if WasDennis then
+                WasDennis = false
+                if Hum then 
+                    Hum.PlatformStand = false -- Ya puede pararse
+                    Camera.CameraSubject = Hum 
+                end
+                
+                if HRP and DennisCFrame then
+                    local targetPos = DennisCFrame + GhostPos
+                    
+                    -- Raycast para no aparecer enterrado al salir
+                    local rayOrigin = targetPos.Position + Vector3.new(0, 10, 0)
+                    local rayDir = Vector3.new(0, -20, 0)
+                    local raycastResult = workspace:Raycast(rayOrigin, rayDir)
+
+                    if raycastResult then
+                        HRP.CFrame = CFrame.new(raycastResult.Position + Vector3.new(0, 3, 0))
+                    else
+                        HRP.CFrame = targetPos + Vector3.new(0, 3, 0)
+                    end
+                end
+
+                -- Reset Visual
+                if Char then
+                    for _, p in pairs(Char:GetDescendants()) do
+                        if p:IsA("BasePart") then p.CanCollide = true p.LocalTransparencyModifier = 0 end
+                    end
+                end
+
+                if FakeClone then FakeClone:Destroy() FakeClone = nil end
+                if CamAnchor then CamAnchor:Destroy() CamAnchor = nil end
+            end
+        end
+    end)
+end)
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+local CombatTab = Window:Tab({ 
+    Title = "Combat", 
+    Icon = "solar:crown-star-bold" 
+})
+
+local VisualsTab = Window:Tab({ 
+    Title = "Esp", 
+    Icon = "solar:eye-bold" 
+})
+
+local HitTab = Window:Tab({ 
+    Title = "Hitbox", 
+    Icon = "solar:gamepad-bold" 
+})
+
+local FarmTab = Window:Tab({ 
+    Title = "Auto Farm", 
+    Icon = "solar:case-round-bold" 
+})
+
+Window:Divider()
+
+local HUDTab = Window:Tab({ 
+    Title = "Movil Bottons", 
+    Icon = "solar:widget-add-bold-duotone" -- Un icono de agregar widgets
+})
+
+Window:Divider() -- Una línea para separar
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+-- // Función para el Sonido 
+
+
+
+-- // 🔘 SECCIÓN: GESTIÓN DE BOTONES FLOTANTES // --
+HUDTab:Section({ Title = "Accesos Rápidos (HUD)" })
+
+HUDTab:Button({
+    Title = "Boton: Aimbot",
+    Callback = function()
+        -- Tu función original intacta
+        CreateQuickButton("Aimbot", "Z_Aimbot_Active", 10734950309) 
+        
+        WindUI:Notify({
+            Title = "Z'v1",
+            Content = "Aimbot: On",
+            Time = 2
+        })
+    end
+})
+
+HUDTab:Button({
+    Title = "Botón: Hitbox",
+    Callback = function()
+        -- Usamos la variable global que el motor reconoce
+        CreateQuickButton("Hitbox", "Z_Hitbox_Enabled", 10734950309) 
+        
+        WindUI:Notify({
+            Title = "Z'v1",
+            Content = "Hitbox: On",
+            Time = 2
+        })
+    end
+})
+
+-- Botón para Limpiar Pantalla (Opcional pero muy útil)
+HUDTab:Button({
+    Title = "Limpiar Todos los Botones",
+    Desc = "Elimina todos los botones flotantes de la pantalla.",
+    Callback = function()
+        for _, v in pairs(game.CoreGui:GetChildren()) do
+            if v.Name:find("Z_Widget_") then
+                v:Destroy()
+            end
+        end
+        WindUI:Notify({
+            Title = "Z'v1",
+            Content = "Botones Eliminados",
+            Time = 2
+        })
+    end
+})
+
+
+
+
+
+-- Botones -- Combat --
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+-- // ⚙️ VARIABLES INICIALES (AUTO CSC) // --
+_G.Z_Aimbot_Active = false
+_G.Z_Aimbot_Smoothing = 2  
+_G.Z_Aimbot_FOV = 120
+_G.Z_Aimbot_Part = "Head"
+_G.Z_MaxStuds = 500
+_G.Z_Aimbot_WallCheck = true
+_G.Z_Aimbot_TeamCheck = true -- Ahora es automático inteligente
+_G.Z_Aimbot_ShowFOV = true
+_G.Z_FOV_Shape = "Circulo"
+
+CombatTab:Section({ Title = "Aimbot | Fix" })
+
+CombatTab:Toggle({
+    Title = "Aimbot",
+    Desc = "Apunta solo a tus enemigos reales.",
+    Value = _G.Z_Aimbot_Active,
+    Callback = function(state) _G.Z_Aimbot_Active = state end
+})
+
+CombatTab:Slider({
+    Title = "Fuerza de Anclaje (Smoothing)",
+    Desc = "1: Rage | 25: Legit.",
+    Step = 1,
+    Value = { Min = 1, Max = 25, Default = 2 },
+    Callback = function(val) _G.Z_Aimbot_Smoothing = val end
+})
+
+CombatTab:Slider({
+    Title = "Rango de FOV",
+    Desc = "Área de detección.",
+    Step = 1,
+    Value = { Min = 10, Max = 800, Default = 120 },
+    Callback = function(val) _G.Z_Aimbot_FOV = val end
+})
+
+CombatTab:Input({
+    Title = "Límite de Distancia (Studs)",
+    Desc = "Máximo de studs para detectar.",
+    Placeholder = "500",
+    Callback = function(val)
+        local n = tonumber(val)
+        if n then _G.Z_MaxStuds = n end
+    end
+})
+
+CombatTab:Dropdown({
+    Title = "Filtros Activos (Auto-Team)",
+    Desc = "El Team Check detecta tu equipo automáticamente.",
+    Multi = true,
+    Values = { "Team Check", "Wall Check", "Show FOV" },
+    Value = { "Team Check", "Wall Check", "Show FOV" },
+    Callback = function(options)
+        _G.Z_Aimbot_TeamCheck = table.find(options, "Team Check") and true or false
+        _G.Z_Aimbot_WallCheck = table.find(options, "Wall Check") and true or false
+        _G.Z_Aimbot_ShowFOV = table.find(options, "Show FOV") and true or false
+    end
+})
+
+CombatTab:Dropdown({
+    Title = "Forma del FOV",
+    Values = { "Circulo", "Cuadrado", "Estrella" },
+    Value = "Circulo",
+    Callback = function(option) _G.Z_FOV_Shape = option end
+})
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+_G.DennisEnabled = false
+
+CombatTab:Section({ Title = "Anti Hit" })
+
+CombatTab:Toggle({
+    Title = "Anti Hit ⏳",
+    Value = _G.DennisEnabled,
+    Callback = function(state)
+        _G.DennisEnabled = state
+        WindUI:Notify({
+            Title = "Z'v1",
+            Content = state and "Onn !" or "Off !",
+            Time = 1.5
+        })
+    end
+})
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+-- // ⚙️ VARIABLES DE CONEXIÓN (TU CEREBRO) // --
+_G.Z_GunMods_Active = true -- El motor siempre está listo para escanear
+_G.Z_GunMods_InfAmmo = false
+_G.Z_GunMods_Burst = false
+_G.Z_GunMods_NoRecoil = false
+
+CombatTab:Section({ Title = "Others Options (ACS)" })
+
+-- 🔵 BOTÓN 1: COMBO (RAPID FIRE + INF BALAS)
+local ComboBtn = CombatTab:Button({
+    Title = "Rapid Fire + Inf Balas",
+    Color = Color3.fromHex("#305dff"), -- Tu azul we
+    Icon = nil,
+    Justify = "Center",
+    Callback = function()
+        -- Conecta a tus variables de Ráfaga e Inf Ammo
+        _G.Z_GunMods_InfAmmo = not _G.Z_GunMods_InfAmmo
+        _G.Z_GunMods_Burst = not _G.Z_GunMods_Burst
+        
+        -- PUM! Fuerza el escaneo de tu cerebro
+        if _G.Z_ForceGunScan then _G.Z_ForceGunScan() end
+    end
+})
+ComboBtn:SetDesc("Balas Inf + Rapid fire. Dispara sin limites + Aumenta un 25% la velocidad de disparo.")
+CombatTab:Space()
+
+-- 🔵 BOTÓN 2: NO RECOIL
+local RecoilBtn = CombatTab:Button({
+    Title = "No Recoil",
+    Color = Color3.fromHex("#305dff"),
+    Icon = nil,
+    Justify = "Center",
+    Callback = function()
+        -- Conecta a tu variable de No Recoil
+        _G.Z_GunMods_NoRecoil = not _G.Z_GunMods_NoRecoil
+        
+        -- PUM! Fuerza el escaneo de tu cerebro
+        if _G.Z_ForceGunScan then _G.Z_ForceGunScan() end
+    end
+})
+RecoilBtn:SetDesc("norecoil. elimina el retroceso y la dispercion de balas.")
+CombatTab:Space()
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+-- // ⚙️ VARIABLES INICIALES (AUTO FARM TRUE FIX) // --
+_G.Z_Farm_Active = false
+
+FarmTab:Section({ Title = "Auto Farm (Fix)" })
+
+-- 🚜 BOTÓN MAESTRO (MODO DIOS)
+FarmTab:Toggle({
+    Title = "Auto Farm 🚜",
+    Desc = "⚠️ Al apagarlo, te reiniciará.",
+    Value = _G.Z_Farm_Active,
+    Callback = function(state) 
+        _G.Z_Farm_Active = state 
+        
+        if state then 
+            WindUI:Notify({ 
+                Title = "Z-Farm", 
+                Content = "Z: Buscando vehículo...", 
+                Time = 2 
+            })
+            if _G.Z_StartFarming then _G.Z_StartFarming() end
+        else
+            WindUI:Notify({ 
+                Title = "Z-Farm", 
+                Content = "APAGADO: Ejecutando True Death...", 
+                Time = 2 
+            })
+        end
+    end
+})
+
+FarmTab:Section({ Title = "Instrucciones de Uso" })
+
+FarmTab:Paragraph({
+    Title = "¡Importante!",
+    Desc = "Auto farm Beta v1.2. este auto farm puede llegar a tener algunos errores. pero se estaran solcuionando. como se usa! es muy sensillo solo activas el auto farm selecionas tu auto y ya empezara solo a farmear🔥"
+})
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+-- // ⚙️ VARIABLES INICIALES (VISUALS) // --
+_G.Z_ESP_Master = false
+_G.Z_ESP_Boxes = true
+_G.Z_ESP_HealthBar = true
+_G.Z_ESP_Color = Color3.fromRGB(0, 255, 0) -- Color inicial: Verde Neon
+
+VisualsTab:Section({ Title = "ESP 2D | v1" })
+
+-- 👁️ MASTER TOGGLE (PRENDE/APAGA TODO EL MOTOR)
+VisualsTab:Toggle({
+    Title = "Esp 2D",
+    Desc = "Enciende el motor de renderizado de jugadores.",
+    Value = _G.Z_ESP_Master,
+    Callback = function(state) 
+        _G.Z_ESP_Master = state 
+    end
+})
+
+-- // 🛡️ TOGGLE: TEAM CHECK (FILTRO PARA CAJAS) // --
+VisualsTab:Toggle({
+    Title = "Team Check",
+    Desc = "Oculta el Esp de tus aliados.",
+    Value = _G.Z_ESP_TeamCheck,
+    Callback = function(state) 
+        _G.Z_ESP_TeamCheck = state 
+        
+        -- Notificación visual rápida
+        WindUI:Notify({
+            Title = "Z'Espv1",
+            Content = state and "On" or "Off",
+            Time = 1.5
+        })
+    end
+})
+
+-- 📦 TOGGLE: CAJAS
+VisualsTab:Toggle({
+    Title = "Box",
+    Desc = "Dibuja un Cuadro alrededor del jugador.",
+    Value = _G.Z_ESP_Boxes,
+    Callback = function(state) _G.Z_ESP_Boxes = state end
+})
+
+-- 🏥 TOGGLE: BARRA DE VIDA
+VisualsTab:Toggle({
+    Title = "HP",
+    Desc = "Añade una barra lateral con vida del enemigo.",
+    Value = _G.Z_ESP_HealthBar,
+    Callback = function(state) _G.Z_ESP_HealthBar = state end
+})
+
+-- 🎨 COLORPICKER (EL QUE MANDA EL COLOR A LA CAJA)
+VisualsTab:Colorpicker({
+    Title = "Color Esp 2D",
+    Default = _G.Z_ESP_Color,
+    Callback = function(color) 
+        _G.Z_ESP_Color = color
+    end
+})
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+-- // ⚙️ VARIABLES INICIALES (TRACERS UPDATE) // --
+_G.Z_Tracers_Enabled = false
+_G.Z_Tracer_Origin = "Abajo"
+_G.Z_Tracer_Color = Color3.fromRGB(0, 255, 0)
+_G.Z_Tracer_Width = 1 -- Ancho por defecto
+_G.Z_Tracer_Transparency = 0.5 -- Transparencia por defecto (0 es sólido, 1 invisible)
+
+VisualsTab:Section({ Title = "Esp Tracers | esp v2" })
+
+-- ⚡ TOGGLE TRACERS
+VisualsTab:Toggle({
+    Title = "Esp Tracers",
+    Desc = "Dibuja líneas hacia los enemigos.",
+    Value = _G.Z_Tracers_Enabled,
+    Callback = function(state) _G.Z_Tracers_Enabled = state end
+})
+
+-- // 🛡️ TOGGLE: TEAM CHECK (SMART FILTER) // --
+VisualsTab:Toggle({
+    Title = "Team Check",
+    Desc = "Oculta el Esp de tus aliados.",
+    Value = _G.Z_Tracer_TeamCheck,
+    Callback = function(state) 
+        _G.Z_Tracer_TeamCheck = state 
+        
+        -- Notificación rápida para confirmar el cambio
+        WindUI:Notify({
+            Title = "Z'v2",
+            Content = state and "On" or "Off",
+            Time = 1.5
+        })
+    end
+})
+
+-- 📏 SLIDER: ANCHO DE LÍNEA
+VisualsTab:Slider({
+    Title = "Grosor",
+    Desc = "Grosor de el tracer (Recomendado: 1.5)",
+    Step = 1,
+    Value = { Min = 1, Max = 5, Default = 1.5 },
+    Callback = function(val) _G.Z_Tracer_Width = val end
+})
+
+-- 👻 SLIDER: TRANSPARENCIA
+VisualsTab:Slider({
+    Title = "Transparencia",
+    Desc = "1: Sólido | 100: Invisible.",
+    Step = 1,
+    Value = { Min = 1, Max = 100, Default = 50 },
+    Callback = function(val) _G.Z_Tracer_Transparency = val / 100 end
+})
+
+-- 📍 ORIGEN DE LÍNEA
+VisualsTab:Dropdown({
+    Title = "ubicacion del Esp Tracer",
+    Values = { "Arriba", "Centro", "Abajo" },
+    Value = "Abajo",
+    Callback = function(option) _G.Z_Tracer_Origin = option end
+})
+
+-- 🎨 COLORPICKER TRACER
+VisualsTab:Colorpicker({
+    Title = "Color Tracer",
+    Default = _G.Z_Tracer_Color,
+    Callback = function(color) _G.Z_Tracer_Color = color end
+})
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+-- // ⚙️ VARIABLES INICIALES (ESP 3D SIMPLIFICADO) // --
+_G.Z_ESP3D_Enabled = false
+_G.Z_ESP3D_Color = Color3.fromRGB(255, 0, 0)
+_G.Z_ESP3D_TeamCheck = false
+
+VisualsTab:Section({ Title = "ESP 3D | v3" })
+
+-- 🧊 MASTER TOGGLE 3D
+VisualsTab:Toggle({
+    Title = "Esp 3D",
+    Desc = "Dibuja una caja 3D.",
+    Value = _G.Z_ESP3D_Enabled,
+    Callback = function(state) _G.Z_ESP3D_Enabled = state end
+})
+
+-- 🎨 COLORPICKER 3D
+VisualsTab:Colorpicker({
+    Title = "Color Esp 3D",
+    Desc = "Elige el color del Esp 3D.",
+    Default = _G.Z_ESP3D_Color,
+    Callback = function(color) _G.Z_ESP3D_Color = color end
+})
+
+-- 🛡️ SMART TEAM CHECK (FULANITO 3)
+VisualsTab:Toggle({
+    Title = "Team Check",
+    Desc = "Oculta el Esp de tus aliados.",
+    Value = _G.Z_ESP3D_TeamCheck,
+    Callback = function(state) 
+        _G.Z_ESP3D_TeamCheck = state 
+        WindUI:Notify({ Title = "Z'v3", Content = " Esp 3D Team-Check: " .. (state and "On" or "Off"), Time = 1.5 })
+    end
+})
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+-- // ⚙️ VARIABLES INICIALES (SKELETON CONFIG) // --
+_G.Z_Skeleton_Enabled = false
+_G.Z_Skeleton_Color = Color3.fromRGB(0, 255, 0) -- Verde Neon por defecto
+_G.Z_Skeleton_TeamCheck = false
+
+VisualsTab:Section({ Title = "Esp Skeleton | v4" })
+
+-- 💀 MASTER TOGGLE SKELETON
+VisualsTab:Toggle({
+    Title = "Esp Skeleton",
+    Desc = "Esp de los huesos de los enemigos.",
+    Value = _G.Z_Skeleton_Enabled,
+    Callback = function(state) _G.Z_Skeleton_Enabled = state end
+})
+
+-- 🎨 COLORPICKER SKELETON
+VisualsTab:Colorpicker({
+    Title = "Color Esp Skeleton",
+    Desc = "Elige el color para el Esp Skeleton",
+    Default = _G.Z_Skeleton_Color,
+    Callback = function(color) _G.Z_Skeleton_Color = color end
+})
+
+-- 🛡️ SMART TEAM CHECK (FULANITO 4)
+VisualsTab:Toggle({
+    Title = "Team Check",
+    Desc = "Oculta el Esp de tus aliados.",
+    Value = _G.Z_Skeleton_TeamCheck,
+    Callback = function(state) 
+        _G.Z_Skeleton_TeamCheck = state 
+        WindUI:Notify({ 
+            Title = "Z'v6", 
+            Content = "Esp Skeleton Team-Check: " .. (state and "ON" or "OFF"), 
+            Time = 1.5 
+        })
+    end
+})
+
+
+
+
+
+
+
+
+
+
+
+
+-- // ⚙️ VARIABLES INICIALES (TEAM NAMES CONFIG) // --
+_G.Z_ESP_TeamNames_Enabled = false
+_G.Z_ESP_TeamNames_SmartCheck = false
+_G.Z_ESP_TeamNames_MaxDist = 600
+
+VisualsTab:Section({ Title = "Esp Roles | v5" })
+
+-- 🏷️ MASTER TOGGLE: NOMBRES DE EQUIPO
+VisualsTab:Toggle({
+    Title = "Esp Roles",
+    Desc = "Muestra el equipo del jugador arriba.",
+    Value = _G.Z_ESP_TeamNames_Enabled,
+    Callback = function(state) _G.Z_ESP_TeamNames_Enabled = state end
+})
+
+-- 🛡️ SMART TEAM CHECK (FULANITO 5)
+VisualsTab:Toggle({
+    Title = "Team Check",
+    Desc = "Oculta el Esp de tus aliados..",
+    Value = _G.Z_ESP_TeamNames_SmartCheck,
+    Callback = function(state) 
+        _G.Z_ESP_TeamNames_SmartCheck = state 
+        WindUI:Notify({ 
+            Title = "Z'v5", 
+            Content = "Esp Roles: Team-Check: " .. (state and "On" or "Off"), 
+            Time = 1.5 
+        })
+    end
+})
+
+-- 📏 SLIDER: DISTANCIA MÁXIMA
+VisualsTab:Slider({
+    Title = "Distancia",
+    Desc = "Ajusta qué tan lejos verás los Roles.",
+    Step = 10,
+    Value = { Min = 100, Max = 2000, Default = 600 },
+    Callback = function(val) _G.Z_ESP_TeamNames_MaxDist = val end
+})
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+local Paragraph = VisualsTab:Paragraph({
+    Title = "Categoria Visuals. Mas de 4 Esp Utiles",
+    Desc = "Script beta v1.2",
+    Color = "Red",
+    Image = "",
+    ImageSize = 30,
+    Thumbnail = "",
+    ThumbnailSize = 80,
+    Locked = false,
+    Buttons = {
+        {
+            Icon = "bird",
+            Title = "Gracias por usarlo!!",
+            Callback = function() print("The final") end,
+        }
+    }
+})
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+-- // ⚙️ VARIABLES GLOBALES (HITBOX UNIFIED CONFIG) // --
+_G.Z_Hitbox_Enabled = false
+_G.Z_Hitbox_TeamCheck = false
+_G.Z_Hitbox_Mode = "Head"
+_G.Z_Hitbox_Size = 12
+_G.Z_Hitbox_Color = Color3.fromRGB(255, 0, 0)
+_G.Z_Hitbox_Transparency = 0.5
+
+HitTab:Section({ Title = "Hit box" })
+
+-- 🎯 MASTER TOGGLE
+HitTab:Toggle({
+    Title = "Hitbox v1",
+    Desc = "Hit box en todos los enemigos...",
+    Value = _G.Z_Hitbox_Enabled,
+    Callback = function(state) _G.Z_Hitbox_Enabled = state end
+})
+
+-- 🛡️ TEAM CHECK (FULANITO 6)
+HitTab:Toggle({
+    Title = "Team Check",
+    Desc = "Solo afecta al equipo contrario.",
+    Value = _G.Z_Hitbox_TeamCheck,
+    Callback = function(state) _G.Z_Hitbox_TeamCheck = state end
+})
+
+-- 🔽 SELECCIONAR OBJETIVO (LISTA FIX)
+HitTab:Dropdown({
+    Title = "Objectivo",
+    Desc = "Elige qué parte expandir.",
+    Values = {"Head"},
+    Value = "Head",
+    Callback = function(option) 
+        _G.Z_Hitbox_Mode = option 
+        WindUI:Notify({ Title = "Z-Hitbox", Content = "Objetivo: " .. option, Time = 1.2 })
+    end
+})
+
+-- 📏 SLIDER TAMAÑO
+HitTab:Slider({
+    Title = "Tamaño de Hitbox",
+    Desc = "Radio de expansión.",
+    Step = 1,
+    Value = { Min = 2, Max = 45, Default = 12 },
+    Callback = function(val) _G.Z_Hitbox_Size = val end
+})
+
+-- 🎨 COLORPICKER
+HitTab:Colorpicker({
+    Title = "Color Hitbox",
+    Desc = "Color Del Hitbox..",
+    Default = _G.Z_Hitbox_Color,
+    Callback = function(color) _G.Z_Hitbox_Color = color end
+})
+
+-- 👻 SLIDER TRANSPARENCIA (FLOAT FIX)
+HitTab:Slider({
+    Title = "Transparencia",
+    Desc = "0: Sólido | 1: Invisible.",
+    Step = 0.1, -- Decimales como pediste we
+    Value = { Min = 0, Max = 1, Default = 0.5 },
+    Callback = function(val) _G.Z_Hitbox_Transparency = val end
+})
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+-- // 🧹 LIMPIEZA DE MEMORIA // --
+if _G.Z_AimCleanup then _G.Z_AimCleanup() end
+
+local Players = game:GetService("Players")
+local RunService = game:GetService("RunService")
+local LocalPlayer = Players.LocalPlayer
+local Camera = workspace.CurrentCamera
+local connections = {}
+
+-- // 🎨 POOL DE LÍNEAS (SIN LAG) // --
+local FOVLines = {}
+for i = 1, 16 do
+    local l = Drawing.new("Line")
+    l.Thickness = 1.5
+    l.Transparency = 0.8
+    l.Color = Color3.fromHex("#30FF6A")
+    l.Visible = false
+    table.insert(FOVLines, l)
+end
+
+_G.Z_AimCleanup = function()
+    for _, c in pairs(connections) do c:Disconnect() end
+    for _, l in pairs(FOVLines) do l:Remove() end
+end
+
+-- // 🛡️ WALL CHECK FIXED // --
+local function IsVisible(part, char)
+    if not _G.Z_Aimbot_WallCheck then return true end
+    local params = RaycastParams.new()
+    params.FilterDescendantsInstances = {LocalPlayer.Character, char}
+    params.FilterType = Enum.RaycastFilterType.Exclude
+    local res = workspace:Raycast(Camera.CFrame.Position, (part.Position - Camera.CFrame.Position), params)
+    return res == nil
+end
+
+-- // 🎯 BUSCADOR CSC AUTO-INTELIGENTE // --
+local targetPart = nil
+local lastSearch = 0
+
+local function GetTarget()
+    -- Optimización: Solo calcula todo 10 veces por segundo
+    if tick() - lastSearch < 0.1 then return targetPart end
+    lastSearch = tick()
+
+    local maxFOV = _G.Z_Aimbot_FOV or 120
+    local center = Camera.ViewportSize / 2
+    local newTarget = nil
+
+    -- 🔍 AUTO DETECCIÓN DE TU EQUIPO ACTUAL
+    local myTeam = LocalPlayer.Team and LocalPlayer.Team.Name or ""
+    local iAmLaw = (myTeam == "Border Patrol" or myTeam == "US Army" or myTeam == "FBI" or myTeam == "BORTAC" or myTeam == "State Trooper" or myTeam == "HSI")
+    local iAmCivil = (myTeam == "Civilian" or myTeam == "Civil")
+
+    for _, p in pairs(Players:GetPlayers()) do
+        if p ~= LocalPlayer and p.Character then
+            local char = p.Character
+            local part = char:FindFirstChild(_G.Z_Aimbot_Part or "Head")
+            local hum = char:FindFirstChildOfClass("Humanoid")
+            
+            if part and hum and hum.Health > 0 then
+                -- 📏 FILTRO STUDS
+                local root = char:FindFirstChild("HumanoidRootPart")
+                if not root then continue end
+                local dist3D = (LocalPlayer.Character.HumanoidRootPart.Position - root.Position).Magnitude
+                if dist3D > (_G.Z_MaxStuds or 500) then continue end
+
+                -- 🤖 AUTO TEAM CHECK (LA MAGIA)
+                if _G.Z_Aimbot_TeamCheck then
+                    local otherTeam = p.Team and p.Team.Name or ""
+                    local targetIsLaw = (otherTeam == "Border Patrol" or otherTeam == "US Army" or otherTeam == "FBI" or otherTeam == "BORTAC" or otherTeam == "State Trooper" or otherTeam == "HSI")
+                    local targetIsCivil = (otherTeam == "Civilian" or otherTeam == "Civil")
+
+                    -- Lógica de combate (Si soy Ley, solo civiles. Si soy civil, solo Ley).
+                    if iAmLaw and not targetIsCivil then continue end
+                    if iAmCivil and not targetIsLaw then continue end
+                    -- Si no soy ni Ley ni Civil (ej. neutral), ignoro a todos por seguridad
+                    if not iAmLaw and not iAmCivil then continue end
+                end
+
+                -- 👁️ FOV Y WALL CHECK
+                local screenPos, onScreen = Camera:WorldToViewportPoint(part.Position)
+                if onScreen then
+                    local distFOV = (Vector2.new(screenPos.X, screenPos.Y) - center).Magnitude
+                    if distFOV < maxFOV then
+                        if IsVisible(part, char) then
+                            maxFOV = distFOV
+                            newTarget = part
+                        end
+                    end
+                end
+            end
+        end
+    end
+    targetPart = newTarget
+    return targetPart
+end
+
+-- // 🔄 LOOP MAESTRO // --
+local mainLoop = RunService.RenderStepped:Connect(function()
+    local center = Camera.ViewportSize / 2
+    local fovDist = _G.Z_Aimbot_FOV or 120
+    local active = _G.Z_Aimbot_Active
+    local showFOV = _G.Z_Aimbot_ShowFOV and active
+    
+    for i = 1, 16 do FOVLines[i].Visible = false end
+
+    -- 🎨 DIBUJAR FOV LITE
+    if showFOV then
+        local shape = _G.Z_FOV_Shape or "Circulo"
+        if shape == "Circulo" then
+            for i = 1, 16 do
+                local a1, a2 = math.rad((i-1)*22.5), math.rad(i*22.5)
+                FOVLines[i].From = center + Vector2.new(math.cos(a1)*fovDist, math.sin(a1)*fovDist)
+                FOVLines[i].To = center + Vector2.new(math.cos(a2)*fovDist, math.sin(a2)*fovDist)
+                FOVLines[i].Visible = true
+            end
+        elseif shape == "Cuadrado" then
+            local p = {
+                center + Vector2.new(-fovDist, -fovDist), center + Vector2.new(fovDist, -fovDist),
+                center + Vector2.new(fovDist, fovDist), center + Vector2.new(-fovDist, fovDist)
+            }
+            for i = 1, 4 do
+                FOVLines[i].From = p[i]; FOVLines[i].To = p[i%4+1]; FOVLines[i].Visible = true
+            end
+        elseif shape == "Estrella" then
+            local pts = {}
+            for i = 1, 10 do
+                local r = (i%2==0) and fovDist or (fovDist*0.45)
+                local a = math.rad((i*36)-90)
+                table.insert(pts, center + Vector2.new(math.cos(a)*r, math.sin(a)*r))
+            end
+            for i = 1, 10 do
+                FOVLines[i].From = pts[i]; FOVLines[i].To = pts[i%10+1]; FOVLines[i].Visible = true
+            end
+        end
+    end
+
+    -- 🎯 AIMBOT LITE
+    if active then
+        local target = GetTarget()
+        if target then
+            local smooth = _G.Z_Aimbot_Smoothing or 5
+            local lookAt = CFrame.new(Camera.CFrame.Position, target.Position)
+            Camera.CFrame = Camera.CFrame:Lerp(lookAt, 1 / smooth)
+        end
+    end
+end)
+
+table.insert(connections, mainLoop)
