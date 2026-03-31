@@ -1,0 +1,121 @@
+local Players = game:GetService("Players")
+local RunService = game:GetService("RunService")
+local UserInputService = game:GetService("UserInputService")
+local TweenService = game:GetService("TweenService")
+local StarterGui = game:GetService("StarterGui")
+local Debris = game:GetService("Debris") 
+local Stats = game:GetService("Stats")
+local Workspace = game:GetService("Workspace")
+
+--// 2. VARIABLES DE ENTORNO //--
+local LocalPlayer = Players.LocalPlayer
+local Camera = Workspace.CurrentCamera
+local ParentTarget = LocalPlayer:WaitForChild("PlayerGui")
+
+local cloneref = (cloneref or clonereference or function(instance) return instance end)
+local ReplicatedStorage = cloneref(game:GetService("ReplicatedStorage"))
+
+
+
+
+
+
+local WindUI = loadstring(game:HttpGet("https://raw.githubusercontent.com/Footagesus/WindUI/main/dist/main.lua"))()
+
+-- Datos del Jugador (Skin redonda)
+local Player = game.Players.LocalPlayer
+local AvatarImg = game.Players:GetUserThumbnailAsync(Player.UserId, Enum.ThumbnailType.HeadShot, Enum.ThumbnailSize.Size420x420)
+
+local Window = WindUI:CreateWindow({
+    Title = "X hub  |  Free",
+    Author = "By  •  @znoreste",
+    Folder = "ftgshub",
+    Icon = "chess-knight",
+    Theme = "Amber",-- Light Plant Indigo Sky Violet Amber Emerald
+    IconSize = 33, -- 22*2
+    NewElements = true,
+    
+    -- 🛠️ CONFIGURACIÓN DE TRANSPARENCIA (GHOST MODE)
+    Transparent = true, -- Activa el modo transparente por defecto
+    TransparencyValue = 0.25, -- Nivel de transparencia (0.1 a 0.4 es lo ideal)
+    
+    HideSearchBar = false,
+    
+    OpenButton = {
+        Title = "X - Hub",
+        CornerRadius = UDim.new(1,0),
+        StrokeThickness = 2,
+        Enabled = true,
+        Draggable = true,
+        OnlyMobile = false,
+        Color = ColorSequence.new(
+            Color3.fromHex("#f57c00"), 
+            Color3.fromHex("#039be5")
+        )
+    },
+    
+    KeySystem = {
+        Title = "Key System  |  X hub",
+        Note = "Introduce la clave privada para acceder.",
+        KeyValidator = function(EnteredKey)
+            return EnteredKey == "zhub"
+        end
+    }
+})
+
+-- */ 4. TU PERFIL (LA "BOLA" ABAJO DE LAS CATEGORÍAS) /* --
+Window:Tag({
+    Title = "User: " .. Player.DisplayName,
+    Icon = AvatarImg,
+    Color = Color3.fromHex("#0A0A0A"),
+    Border = true,
+})
+
+
+do
+    Window:Tag({
+        Title = "Free",
+        Icon = "lock-open",
+        Color = Color3.fromHex("#1c1c1c"),
+        Border = true,
+    })
+end
+
+-- Efectos de Post-Procesado (El "Vidrio" de los videos)
+pcall(function()
+    Window:SetTransparency(true)
+    Window:SetUserBlur(true)
+end)
+
+
+
+
+
+
+
+
+
+
+local CombatTab = Window:Tab({ 
+    Title = "Combat", 
+    Icon = "sword" 
+})
+
+local VisualsTab = Window:Tab({ 
+    Title = "Esp", 
+    Icon = "eye" 
+})
+
+local HitTab = Window:Tab({ 
+    Title = "Hitbox", 
+    Icon = "target" 
+})
+
+Window:Divider()
+
+local FarmTab = Window:Tab({ 
+    Title = "Auto Farm", 
+    Icon = "zap" 
+})
+
+Window:Divider() -- Una línea para separar
