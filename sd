@@ -101,6 +101,28 @@ FarmTab:Space()
 
 
 
+-- 🔵 BOTÓN: ANTI-AFK (DENTRO DE CATEGORÍA FARM)
+local AntiAFKBtn = FarmTab:Button({
+    Title = "Anti-AFK: Sistema Activo",
+    Color = Color3.fromHex("#305dff"), -- Tu azul Z-Hub
+    Icon = nil,
+    Justify = "Center",
+    Callback = function()
+        -- Conecta directo al cerebro v3.0 que pasaste
+        if _G.antiAFK and _G.antiAFK.toggle then
+            _G.antiAFK.toggle()
+            
+            -- Feedback rápido en consola
+            local activo = _G.antiAFK.isActive()
+            print("Z-Hub: Anti-AFK está " .. (activo and "ENCENDIDO" or "APAGADO"))
+        else
+            warn("¡Ponte pilas we! El script de Anti-AFK no se ha cargado.")
+        end
+    end
+})
+
+AntiAFKBtn:SetDesc("Evita el kick por inactividad simulando cámara y teclado.")
+FarmTab:Space()
 
 
 
@@ -540,3 +562,57 @@ end
 
 -- (Opcional) para compatibilidad con scripts anteriores que usaban autoFarm global
 _G.autoFarm = autoFarm
+
+
+
+-- ==============================================================================
+-- ANTI-AFK v3.0 (Standalone - Independiente del Auto Farm)
+-- Métodos: Movimiento de cámara + tecla W simulada + mouse invisible
+-- ==============================================================================
+local vim = game:GetService("VirtualInputManager")
+local uis = game:GetService("UserInputService")
+local rs = game:GetService("RunService")
+local cam = workspace.CurrentCamera
+
+local antiAFKActive = false
+local antiAFKThread = nil
+
+-- Movimiento sutil de cámara (1 grado izquierda/derecha)
+local function moveCamera()
+    if not antiAFKActive then return end
+    local currentCF = cam.CFrame
+    cam.CFrame = currentCF * CFrame.Angles(0, math.rad(1), 0)
+    task.wait(0.05)
+    cam.CFrame = currentCF * CFrame.Angles(0, math.rad(-1), 0)
+    task.wait(0.05)
+    cam.CFrame = currentCF
+end
+
+-- Simular tecla W (presionar y soltar rápido)
+local function pressW()
+    if not antiAFKActive then return end
+    vim:SendKeyEvent(true, "W", false, game)
+    task.wait(0.05)
+    vim:SendKeyEvent(false, "W", false, game)
+end
+
+-- Simular movimiento del mouse (1 píxel)
+local function moveMouse()
+    if not antiAFKActive then return end
+    local pos = uis:GetMouseLocation()
+    vim:SendMouseMovementEvent(pos.X + 1, pos.Y, 0, game)
+    task.wait(0.05)
+    vim:SendMouseMovementEvent(pos.X, pos.Y, 0, game)
+end
+
+-- Bucle principal
+local function antiAFKLoop()
+    while antiAFKActive do
+        moveCamera()
+        pressW()
+        moveMouse()
+        
+        local waitTime = math.random(40, 70) -- entre 40 y 70 segundos
+        task.wait(waitTime)
+    end
+end
