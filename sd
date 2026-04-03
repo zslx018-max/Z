@@ -67,12 +67,37 @@ local FarmTab = Window:Tab({
     Icon = "car" 
 })
 
-WindUI:Notify({
-    Title = "Notification Title",
-    Content = "Notification Content example!",
-    Duration = 3, -- 3 seconds
-    Icon = "bird",
+
+
+
+
+FarmTab:Section({ Title = "Automatización de Dinero" })
+
+-- 🎚️ TOGGLE: AUTO-FARM (MODO DIOS)
+local FarmToggle = FarmTab:Toggle({
+    Title = "Auto-Farm: Modo Dios",
+    Default = false, -- Empieza apagado, we
+    Callback = function(state)
+        -- 'state' es true si el switch está prendido, false si está apagado
+        
+        if _G.zHub and _G.zHub.toggle then
+            -- Llamamos al toggle del cerebro
+            _G.zHub.toggle()
+            
+            -- Feedback en la consola para que sepas que jaló
+            if state then
+                print("Z-Hub: [ON] Farm Modo Dios activado.")
+            else
+                print("Z-Hub: [OFF] Farm detenido y reset de cámara.")
+            end
+        else
+            warn("¡Aguas we! No has cargado el cerebro del AutoFarm.")
+        end
+    end
 })
+
+FarmToggle:SetDesc("Ciclo infinito Fase 1-7: Teleports, Compras y Ventas automáticas.")
+FarmTab:Space()
 
 
 
@@ -118,3 +143,400 @@ CreditsTab:Button({
         })
     end
 })
+
+
+
+
+
+
+
+
+
+
+
+
+
+-- ==============================================================================
+-- Z-HUB: CORE AUTOFARM v50.0 (Sin UI - Para integrar con Win ui)
+-- Exporta: _g.start(), _g.stop(), _g.toggle()
+-- ==============================================================================
+local p = game.Players.LocalPlayer
+local rs = game:GetService("RunService")
+local vim = game:GetService("VirtualInputManager")
+
+local char, hum, hrp
+local miAsiento = nil
+local autoFarm = false
+local farmLoop = nil
+
+local function refreshVars()
+    char = p.Character or p.CharacterAdded:Wait()
+    hum = char:WaitForChild("Humanoid")
+    hrp = char:WaitForChild("HumanoidRootPart")
+end
+refreshVars()
+
+local items = {["Fake Designer Bag"]=3, ["Fake Watch"]=3, ["Sarsaparilla"]=4}
+
+-- NUCLEAR PHYSICS
+local function NukeVehiclePhysics(veh)
+    if not veh then return end
+    for _, v in pairs(veh:GetDescendants()) do
+        if v:IsA("Script") or v:IsA("LocalScript") then
+            v.Disabled = true
+        end
+        if v:IsA("Constraint") or v:IsA("SpringConstraint")
+        or v:IsA("CylindricalConstraint") or v:IsA("HingeConstraint")
+        or v:IsA("RodConstraint") or v:IsA("BallSocketConstraint") then
+            v:Destroy()
+        end
+        if v:IsA("BasePart") then
+            local n = v.Name:lower()
+            if n:find("wheel") or n:find("tire") or n:find("llanta")
+            or n:find("fr") or n:find("fl") or n:find("rr") or n:find("rl")
+            or n:find("axle") or n:find("suspension") then
+                v:Destroy()
+            end
+        end
+    end
+    for _, v in pairs(veh:GetDescendants()) do
+        if v:IsA("BasePart") then
+            v.Anchored = true
+            v.CanCollide = false
+            v.AssemblyLinearVelocity = Vector3.zero
+            v.AssemblyAngularVelocity = Vector3.zero
+        end
+    end
+end
+
+local function getQty(name)
+    local c, s = 0, name:lower()
+    for _, v in pairs(p.Backpack:GetChildren()) do if v.Name:lower():find(s) then c=c+1 end end
+    local t = char:FindFirstChildWhichIsA("Tool"); if t and t.Name:lower():find(s) then c=c+1 end
+    return c
+end
+
+local function hasAllItems()
+    for item, maxQty in pairs(items) do if getQty(item) < maxQty then return false end end
+    return true
+end
+
+local function hasNoItems()
+    for item, _ in pairs(items) do if getQty(item) > 0 then return false end end
+    return true
+end
+
+-- NOCLIP
+local noclipLoop = nil
+local function toggleNoclip(state)
+    if state then
+        if not noclipLoop then
+            noclipLoop = rs.Stepped:Connect(function()
+                if not char then return end
+                for _, v in pairs(char:GetDescendants()) do
+                    if v:IsA("BasePart") then v.CanCollide = false end
+                end
+            end)
+        end
+    else
+        if noclipLoop then noclipLoop:Disconnect(); noclipLoop = nil end
+    end
+end
+
+local function EnsureSit()
+    if not miAsiento or not autoFarm then return end
+    if not miAsiento.Parent then miAsiento = nil; return end
+    toggleNoclip(false)
+    if hum.SeatPart == miAsiento then return end
+    local t = tick()
+    while hum.SeatPart ~= miAsiento and autoFarm and tick() - t < 5 do
+        if not miAsiento or not miAsiento.Parent then miAsiento = nil; return end
+        hrp.CFrame = miAsiento.CFrame
+        miAsiento:Sit(hum)
+        task.wait(0.1)
+    end
+    task.wait(0.2)
+end
+
+local function safeVehicleTP(destCFrame, isIndoor)
+    if not miAsiento or not miAsiento.Parent then return end
+    local veh = miAsiento:FindFirstAncestorOfClass("Model")
+    if not veh then return end
+
+    NukeVehiclePhysics(veh)
+    task.wait(0.1)
+
+    if hum.SeatPart ~= miAsiento then
+        hrp.CFrame = miAsiento.CFrame
+        miAsiento:Sit(hum)
+        task.wait(0.15)
+    end
+
+    local finalCFrame
+    if isIndoor then
+        finalCFrame = destCFrame
+    else
+        local _, sz = veh:GetBoundingBox()
+        finalCFrame = destCFrame + Vector3.new(0, (sz.Y / 2) + 1.5, 0)
+    end
+
+    veh:PivotTo(finalCFrame)
+    task.wait(0.3)
+
+    for _, v in pairs(veh:GetDescendants()) do
+        if v:IsA("BasePart") then
+            v.Anchored = true
+            v.AssemblyLinearVelocity = Vector3.zero
+            v.AssemblyAngularVelocity = Vector3.zero
+        end
+    end
+    task.wait(0.1)
+end
+
+local function safeExitSeat(walkDest)
+    if not hrp or not miAsiento then return end
+    if not miAsiento.Parent then miAsiento = nil; return end
+
+    toggleNoclip(true)
+    hum.Sit = false
+    task.wait(0.1)
+
+    hrp.Anchored = true
+    task.wait(0.05)
+    hrp.CFrame = CFrame.new(walkDest.X, walkDest.Y, walkDest.Z)
+    task.wait(0.15)
+    hrp.Anchored = false
+    task.wait(0.1)
+end
+
+-- ==============================================================================
+-- SMARTWASH (Teleport cada 0.5s)
+-- ==============================================================================
+local function SmartWash()
+    if getQty("Briefcase") == 0 then return end
+
+    hrp.Anchored = true
+    hrp.CFrame = CFrame.new(-1829, 3, -13)
+    hrp.Anchored = false
+    task.wait(0.1)
+
+    local lastTeleport = tick()
+    local endTime = tick() + 10
+
+    while getQty("Briefcase") > 0 and tick() < endTime and autoFarm do
+        if tick() - lastTeleport >= 0.5 then
+            hrp.Anchored = true
+            hrp.CFrame = CFrame.new(-1829, 3, -13)
+            hrp.Anchored = false
+            lastTeleport = tick()
+        end
+
+        for _, obj in pairs(workspace:GetDescendants()) do
+            if obj:IsA("ProximityPrompt") then
+                local pPart = obj.Parent:IsA("BasePart") and obj.Parent or obj.Parent.Parent
+                if pPart and pPart:IsA("BasePart") and (pPart.Position - hrp.Position).Magnitude <= 18 then
+                    local txt = (obj.ObjectText .. obj.ActionText):lower()
+                    if txt:find("laundry") or txt:find("dirty") or txt:find("wash") then
+                        obj.HoldDuration = 0
+                        fireproximityprompt(obj)
+                        task.wait(0.05)
+                    end
+                end
+            end
+        end
+        task.wait(0.1)
+    end
+
+    hrp.Anchored = true
+    hrp.CFrame = CFrame.new(-1843, 3, 8)
+    hrp.Anchored = false
+    task.wait(0.1)
+end
+
+-- ==============================================================================
+-- SMARTBUY (Teleport cada 0.5s)
+-- ==============================================================================
+local function SmartBuy()
+    local marketPos = CFrame.new(-1843, 3, 8)
+    local endTime = tick() + 15
+    local lastTeleport = tick()
+
+    while not hasAllItems() and tick() < endTime and autoFarm do
+        if tick() - lastTeleport >= 0.5 then
+            hrp.Anchored = true
+            hrp.CFrame = marketPos
+            hrp.Anchored = false
+            lastTeleport = tick()
+        end
+
+        for _, obj in pairs(workspace:GetDescendants()) do
+            if obj:IsA("ProximityPrompt") then
+                local pPart = obj.Parent:IsA("BasePart") and obj.Parent or obj.Parent.Parent
+                if pPart and pPart:IsA("BasePart") and (pPart.Position - hrp.Position).Magnitude <= 18 then
+                    local txt = (obj.ObjectText .. obj.ActionText):lower()
+                    for item, maxQty in pairs(items) do
+                        if txt:find(item:lower()) and getQty(item) < maxQty then
+                            obj.HoldDuration = 0
+                            fireproximityprompt(obj)
+                            task.wait()
+                        end
+                    end
+                end
+            end
+        end
+        task.wait(0.03)
+    end
+end
+
+-- ==============================================================================
+-- SMARTSELL
+-- ==============================================================================
+local function SmartSell()
+    local endTime = tick() + 8
+    while not hasNoItems() and tick() < endTime and autoFarm do
+        for _, obj in pairs(workspace:GetDescendants()) do
+            if obj:IsA("ProximityPrompt") then
+                local pPart = obj.Parent:IsA("BasePart") and obj.Parent or obj.Parent.Parent
+                if pPart and pPart:IsA("BasePart") and (pPart.Position - hrp.Position).Magnitude <= 18 then
+                    local txt = (obj.ObjectText .. obj.ActionText):lower()
+                    if txt:find("sell") or txt:find("smuggle") then
+                        obj.HoldDuration = 0; fireproximityprompt(obj); task.wait(0.05)
+                    end
+                end
+            end
+        end
+        task.wait(0.1)
+    end
+end
+
+-- ==============================================================================
+-- OBTENER CARRO PREMIUM (Teleport cada 0.5s)
+-- ==============================================================================
+local function forceUIClick(textoBoton)
+    for _, gui in pairs(p.PlayerGui:GetDescendants()) do
+        if gui:IsA("TextButton") and gui.Visible and gui.AbsolutePosition.X > 0 then
+            if gui.Text:lower():find(textoBoton:lower()) then
+                local x = gui.AbsolutePosition.X + (gui.AbsoluteSize.X / 2)
+                local y = gui.AbsolutePosition.Y + (gui.AbsoluteSize.Y / 2) + 36
+                vim:SendMouseButtonEvent(x, y, 0, true, game, 1)
+                task.wait(0.05)
+                vim:SendMouseButtonEvent(x, y, 0, false, game, 1)
+                return true
+            end
+        end
+    end
+    return false
+end
+
+local function AutoGetCarPremium()
+    if hum.SeatPart then 
+        miAsiento = hum.SeatPart
+        return 
+    end
+
+    local carSpawnPos = CFrame.new(-1947, 3.5, 55)
+    local startTime = tick()
+    local maxDuration = 15
+    local lastTeleport = tick()
+
+    while not hum.SeatPart and tick() - startTime < maxDuration and autoFarm do
+        if tick() - lastTeleport >= 0.5 then
+            hrp.Anchored = true
+            hrp.CFrame = carSpawnPos
+            hrp.Anchored = false
+            lastTeleport = tick()
+        end
+
+        forceUIClick("select")
+        task.wait(0.1)
+        forceUIClick("spawn")
+        task.wait(0.1)
+
+        for _, obj in pairs(workspace:GetDescendants()) do
+            if (obj:IsA("VehicleSeat") or obj:IsA("Seat"))
+            and (obj.Position - hrp.Position).Magnitude < 30 then
+                obj:Sit(hum)
+                if hum.SeatPart then 
+                    miAsiento = hum.SeatPart
+                    return 
+                end
+            end
+        end
+        task.wait(0.2)
+    end
+
+    if not hum.SeatPart then
+        task.wait(1)
+        AutoGetCarPremium()
+    end
+end
+
+-- ==============================================================================
+-- MAIN LOOP (se ejecuta en segundo plano)
+-- ==============================================================================
+local function mainLoop()
+    while true do
+        task.wait(0.2)
+        if autoFarm then
+            pcall(function()
+                refreshVars()
+                if not miAsiento or not miAsiento.Parent then
+                    if hum.SeatPart then
+                        miAsiento = hum.SeatPart
+                    else
+                        AutoGetCarPremium()
+                        if not miAsiento then return end
+                    end
+                end
+                EnsureSit()
+
+                -- FASE 3
+                safeVehicleTP(CFrame.new(-1849, 1, 25), true)
+                safeExitSeat(Vector3.new(-1843, 3, 8))
+                task.wait(0.1)
+                SmartWash()
+                SmartBuy()
+                EnsureSit()
+
+                -- FASE 7
+                safeVehicleTP(CFrame.new(3514, 14, -723) * CFrame.Angles(0, math.rad(26), 0), false)
+                safeExitSeat(Vector3.new(3506, 4, -744))
+                task.wait(0.1)
+                SmartSell()
+                EnsureSit()
+            end)
+        end
+    end
+end
+
+-- Iniciar el loop principal
+task.spawn(mainLoop)
+
+-- ==============================================================================
+-- EXPORTAR CONTROLES (para tu Win ui)
+-- ==============================================================================
+_G = _G or {}
+_G.zHub = _G.zHub or {}
+_G.zHub.autoFarm = autoFarm  -- variable compartida
+
+function _G.zHub.start()
+    autoFarm = true
+    _G.zHub.autoFarm = true
+end
+
+function _G.zHub.stop()
+    autoFarm = false
+    _G.zHub.autoFarm = false
+    -- Opcional: resetear asiento para evitar conflictos
+    miAsiento = nil
+    p.CameraMaxZoomDistance = 128
+    p.CameraMinZoomDistance = 0.5
+    pcall(function() if hum then hum.Health = 0 end end)
+end
+
+function _G.zHub.toggle()
+    if autoFarm then _G.zHub.stop() else _G.zHub.start() end
+end
+
+-- (Opcional) para compatibilidad con scripts anteriores que usaban autoFarm global
+_G.autoFarm = autoFarm
