@@ -1,0 +1,120 @@
+-- Cargamos la librería WindUI
+local WindUI = loadstring(game:HttpGet("https://raw.githubusercontent.com/zslx018-max/Z/refs/heads/main/f1"))()
+
+local Window = WindUI:CreateWindow({
+    Title = "X Hub",
+    Icon = "car",
+    Folder = "CloudHub",
+    Size = UDim2.fromOffset(220, 435), -- ancho el 1 
+    Transparent = false,
+    Theme = "Dark",
+    IconSize = 22, -- 22*2
+    Resizable = true,
+    SideBarWidth = 200,
+    Background = "",
+    BackgroundImageTransparency = 0.42,
+    HideSearchBar = true,
+    ScrollBarEnabled = false,
+    -- Aquí agregamos el botón que pasaste
+
+    OpenButton = {
+        Title = "X - Hub",
+        CornerRadius = UDim.new(0,3),
+        StrokeThickness = 1.2,
+        Enabled = true,
+        Draggable = true,
+        OnlyMobile = false,
+        Color = ColorSequence.new(
+            Color3.fromHex("#f57c00"), 
+            Color3.fromHex("#039be5")
+        )
+    },
+    User = {
+        Enabled = true,
+        Anonymous = true,
+        Callback = function()
+            print("User icon clicked")
+        end,
+    },
+    KeySystem = { 
+        Key = { "1234", "5678" },
+        Note = "Example Key System.",
+        Thumbnail = {
+            Image = "rbxassetid://",
+            Title = "Thumbnail",
+        }, -- Coma corregida
+        URL = "https://github.com/Footagesus/WindUI",
+        SaveKey = false,
+    },
+})
+  
+    Window:Tag({
+        Title = "Free",
+        Icon = "lock-open",
+        Color = Color3.fromHex("#0040ff"),
+        Border = true,
+    })
+
+
+-- 1. CREAMOS LA PESTAÑA DE CRÉDITOS (Al final de tus otras pestañas)
+local CreditsTab = Window:Tab({ 
+    Title = "Créditos", 
+    Icon = "info" -- Icono de información
+})
+
+local FarmTab = Window:Tab({ 
+    Title = "Auto Farm", 
+    Icon = "car" 
+})
+
+WindUI:Notify({
+    Title = "Notification Title",
+    Content = "Notification Content example!",
+    Duration = 3, -- 3 seconds
+    Icon = "bird",
+})
+
+
+
+
+
+
+-- credit
+
+CreditsTab:Section({ Title = "Creditos" })
+
+CreditsTab:Paragraph({
+    Title = "Actualizaciones+",
+    Desc = "Script creado por @znoreste. por el momento cuenta con un Auto farm + bypass. Se hiran agregando opciones en las proximas actualizaciones"
+})
+
+CreditsTab:Divider()
+
+-- Botón de TikTok
+CreditsTab:Button({
+    Title = "TikTok",
+    Desc = "Cuenta Oficial De Tiktok!! Sigueme",
+    Icon = "video", 
+    Callback = function()
+        setclipboard("https://www.tiktok.com/@TU_USER")
+        WindUI:Notify({
+            Title = "TikTok",
+            Content = "Tiktok Copiado Correctamente",
+            Duration = 3
+        })
+    end
+})
+
+CreditsTab:Button({
+    Title = "Discord",
+    Desc = "Mantente Actualizado Sobre Nuevas Actualizaciones o Proximos Scripts.",
+    Icon = "message-circle", -- Icono tipo chat
+    Callback = function()
+        setclipboard("https://discord.gg/TU_LINK") -- Copia el link al portapapeles
+        WindUI:Notify({
+            Title = "Discord Copiado",
+            Content = "Discord Copiado Correctamente.",
+            Duration = 3
+        })
+    end
+})
