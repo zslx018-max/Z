@@ -5,18 +5,18 @@ local Window = WindUI:CreateWindow({
     Title = "X Hub",
     Icon = "car",
     Folder = "CloudHub",
-    Size = UDim2.fromOffset(220, 435), -- ancho el 1 
+    Size = UDim2.fromOffset(220, 435), 
     Transparent = false,
     Theme = "Dark",
-    IconSize = 22, -- 22*2
+    IconSize = 22, 
     Resizable = true,
     SideBarWidth = 200,
     Background = "",
     BackgroundImageTransparency = 0.42,
     HideSearchBar = true,
     ScrollBarEnabled = false,
-    -- Aquí agregamos el botón que pasaste
 
+    -- Configuración del botón flotante
     OpenButton = {
         Title = "X - Hub",
         CornerRadius = UDim.new(0,3),
@@ -29,23 +29,16 @@ local Window = WindUI:CreateWindow({
             Color3.fromHex("#ffffff")
         )
     },
+
+    -- Icono de usuario (Opcional)
     User = {
         Enabled = true,
         Anonymous = true,
         Callback = function()
             print("User icon clicked")
         end,
-    },
-    KeySystem = { 
-        Key = { "1234", "5678" },
-        Note = "Example Key System.",
-        Thumbnail = {
-            Image = "rbxassetid://",
-            Title = "Thumbnail",
-        }, -- Coma corregida
-        URL = "https://github.com/Footagesus/WindUI",
-        SaveKey = false,
-    },
+    }
+    -- SISTEMA DE KEY ELIMINADO PARA ACCESO DIRECTO --
 })
   
     Window:Tag({
