@@ -25,8 +25,8 @@ local Window = WindUI:CreateWindow({
         Draggable = true,
         OnlyMobile = false,
         Color = ColorSequence.new(
-            Color3.fromHex("#f57c00"), 
-            Color3.fromHex("#039be5")
+            Color3.fromHex("#484848"), 
+            Color3.fromHex("#ffffff")
         )
     },
     User = {
