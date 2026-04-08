@@ -1,0 +1,320 @@
+-- Cargamos la librería WindUI
+local WindUI = loadstring(game:HttpGet("https://raw.githubusercontent.com/zslx018-max/Z/refs/heads/main/f1"))()
+
+local Window = WindUI:CreateWindow({
+    Title = "X Hub",
+    Icon = "car",
+    Folder = "CloudHub",
+    Size = UDim2.fromOffset(220, 435), 
+    Transparent = false,
+    Theme = "Dark",
+    IconSize = 22, 
+    Resizable = true,
+    SideBarWidth = 200,
+    Background = "",
+    BackgroundImageTransparency = 0.42,
+    HideSearchBar = true,
+    ScrollBarEnabled = false,
+
+    -- Configuración del botón flotante
+    OpenButton = {
+        Title = "X - Hub",
+        CornerRadius = UDim.new(0,3),
+        StrokeThickness = 1.2,
+        Enabled = true,
+        Draggable = true,
+        OnlyMobile = false,
+        Color = ColorSequence.new(
+            Color3.fromHex("#484848"), 
+            Color3.fromHex("#ffffff")
+        )
+    },
+
+    -- Icono de usuario (Opcional)
+    User = {
+        Enabled = true,
+        Anonymous = true,
+        Callback = function()
+            print("User icon clicked")
+        end,
+    }
+    -- SISTEMA DE KEY ELIMINADO PARA ACCESO DIRECTO --
+})
+
+Window:Tag({
+    Title = "Free",
+    Icon = "lock-open",
+    Color = Color3.fromHex("#0040ff"),
+    Border = true,
+})
+
+-- ================== SERVICIOS ==================
+local RunService = game:GetService("RunService")
+local Players = game.Players
+local Workspace = game:GetService("Workspace")
+local p = Players.LocalPlayer
+
+-- ================== CONFIGURACIÓN DE ZONAS ==================
+local ZONA_VENTA = {
+    Pos = Vector3.new(3150.53, 2.74, -178.38),
+    Rot = CFrame.Angles(0, math.rad(49.1), 0)
+}
+
+local ZONA_COMPRA = {
+    Pos = Vector3.new(-1842.77, 3.24, -0.32),
+    Rot = CFrame.Angles(0, math.rad(-88.4), 0)
+}
+
+local ZONA_LAVADO = {
+    Pos = Vector3.new(-1847, 3.5, -9),
+    Rot = CFrame.Angles(0, math.rad(-88.4), 0)
+}
+
+-- ================== FUNCIONES DE SOPORTE ==================
+local function humanWait(min, max)
+    task.wait(min + math.random() * (max - min))
+end
+
+local function isNear(pos, radius)
+    local char = p.Character
+    if not char then return false end
+    local hrp = char:FindFirstChild("HumanoidRootPart")
+    return hrp and (hrp.Position - pos).Magnitude <= (radius or 30)
+end
+
+local function isInVoid()
+    local char = p.Character
+    if not char then return false end
+    local hrp = char:FindFirstChild("HumanoidRootPart")
+    return hrp and hrp.Position.Y < 2
+end
+
+local function waitForChunks(center, minParts)
+    minParts = minParts or 20
+    local start = tick()
+    repeat
+        local count = 0
+        for _, v in ipairs(Workspace:GetDescendants()) do
+            if v:IsA("BasePart") and (v.Position - center).Magnitude < 150 then
+                count += 1
+            end
+        end
+        if count >= minParts then return true end
+        task.wait(0.3)
+    until tick() - start > 10
+    return false
+end
+
+local function forceReset()
+    if p.Character then
+        p.Character:BreakJoints()
+    end
+    repeat task.wait(0.3) until p.Character and p.Character:FindFirstChild("HumanoidRootPart")
+    task.wait(0.5)
+end
+
+-- ================== TP ROCK SOLID (8 REINTENTOS) ==================
+local function rockSolidTP(targetPos, targetRot)
+    local maxTries = 8
+    local success = false
+    
+    for attempt = 1, maxTries do
+        local char = p.Character
+        if not char then break end
+        
+        local hrp = char:WaitForChild("HumanoidRootPart")
+        local hum = char:WaitForChild("Humanoid")
+        
+        WindUI:Notify({
+            Title = "TP Sólido",
+            Content = "Intento "..attempt.."/"..maxTries.."...",
+            Duration = 1.5,
+        })
+        
+        -- Pre-estabilización
+        hum:SetStateEnabled(Enum.HumanoidStateType.Dead, false)
+        hrp.Velocity = Vector3.zero
+        hrp.RotVelocity = Vector3.zero
+        hrp.Anchored = true
+        hrp.CFrame = hrp.CFrame + Vector3.new(0, 0.5, 0)
+        task.wait(0.15)
+        
+        local noclip = RunService.Stepped:Connect(function()
+            for _, v in pairs(char:GetDescendants()) do
+                if v:IsA("BasePart") then v.CanCollide = false end
+            end
+        end)
+
+        -- Bombardeo (70 paquetes)
+        for _ = 1, 70 do
+            hrp.CFrame = CFrame.new(targetPos) * targetRot
+            RunService.Heartbeat:Wait()
+        end
+
+        hum.PlatformStand = true
+        hrp.Anchored = false
+        
+        -- Dominación (3.0s)
+        local endT = tick() + 3.0
+        repeat
+            hrp.CFrame = CFrame.new(targetPos) * targetRot
+            hrp.Velocity = Vector3.zero
+            hrp.RotVelocity = Vector3.zero
+            hum.Health = hum.MaxHealth
+            RunService.RenderStepped:Wait()
+        until tick() > endT
+
+        -- Corrección simple post‑TP (1.5s)
+        local correctionEnd = tick() + 1.5
+        repeat
+            local currentPos = hrp.Position
+            if currentPos.Y < 2 then
+                hrp.CFrame = CFrame.new(targetPos.X, targetPos.Y, targetPos.Z) * targetRot
+            elseif (currentPos - targetPos).Magnitude > 25 then
+                hrp.CFrame = CFrame.new(targetPos) * targetRot
+            end
+            hrp.Velocity = Vector3.zero
+            hrp.RotVelocity = Vector3.zero
+            RunService.Heartbeat:Wait()
+        until tick() > correctionEnd
+
+        hum.PlatformStand = false
+        noclip:Disconnect()
+        hum:SetStateEnabled(Enum.HumanoidStateType.Dead, true)
+        
+        humanWait(0.3, 0.5)
+        
+        -- Verificación final
+        if isNear(targetPos, 35) and not isInVoid() then
+            waitForChunks(targetPos, 25)
+            success = true
+            break
+        else
+            hrp.CFrame = CFrame.new(targetPos) * targetRot
+            task.wait(0.5)
+        end
+    end
+    
+    if success then
+        WindUI:Notify({
+            Title = "TP EXITOSO",
+            Content = "Llegada confirmada. ¡A darle!",
+            Duration = 2,
+        })
+    else
+        WindUI:Notify({
+            Title = "TP FALLIDO",
+            Content = "Prueba hacer Reset manual y reintenta.",
+            Duration = 3,
+        })
+    end
+    
+    return success
+end
+
+-- ================== PESTAÑAS ==================
+
+-- Pestaña Auto Farm (vacía por ahora, aquí puedes añadir tus opciones)
+local FarmTab = Window:Tab({ 
+    Title = "Auto Farm", 
+    Icon = "car" 
+})
+
+FarmTab:Section({ Title = "「📂」Autofarm" })
+FarmTab:Paragraph({
+    Title = "Info",
+    Desc = "Próximamente: Auto Farm con bypass."
+})
+
+-- Pestaña Teletransporte (NUEVA)
+local TPTab = Window:Tab({ 
+    Title = "Tp manual", 
+    Icon = "map-pin" 
+})
+
+TPTab:Section({ Title = "Auto Farm | Manual" })
+
+TPTab:Button({
+    Title = "Tp v1",
+    Desc = "Teletransporte seguro a la zona de venta.",
+    Icon = "shopping-cart",
+    Callback = function()
+        rockSolidTP(ZONA_VENTA.Pos, ZONA_VENTA.Rot)
+    end
+})
+
+TPTab:Button({
+    Title = "Tp v2",
+    Desc = "Regresa a la base de compra.",
+    Icon = "home",
+    Callback = function()
+        rockSolidTP(ZONA_COMPRA.Pos, ZONA_COMPRA.Rot)
+    end
+})
+
+TPTab:Button({
+    Title = "Tp v3",
+    Desc = "Ve a la zona de lavado de maletines.",
+    Icon = "droplet",
+    Callback = function()
+        rockSolidTP(ZONA_LAVADO.Pos, ZONA_LAVADO.Rot)
+    end
+})
+
+TPTab:Section({ Title = "Mantenimiento" })
+
+TPTab:Button({
+    Title = "Reset Personaje",
+    Desc = "Úsalo si el TP falla repetidamente.",
+    Icon = "refresh-cw",
+    Callback = function()
+        forceReset()
+        WindUI:Notify({
+            Title = "Reset",
+            Content = "Personaje reiniciado.",
+            Duration = 2
+        })
+    end
+})
+
+-- Pestaña Créditos (la que ya tenías)
+local CreditsTab = Window:Tab({ 
+    Title = "Créditos", 
+    Icon = "info"
+})
+
+CreditsTab:Section({ Title = "Creditos" })
+
+CreditsTab:Button({
+    Title = "TikTok",
+    Desc = "Cuenta Oficial De Tiktok!! Sigueme",
+    Icon = "video",
+    Callback = function()
+        setclipboard("https://www.tiktok.com/@TU_USER")
+        WindUI:Notify({
+            Title = "TikTok",
+            Content = "Tiktok Copiado Correctamente",
+            Duration = 3
+        })
+    end
+})
+
+CreditsTab:Button({
+    Title = "Discord",
+    Desc = "Mantente Actualizado Sobre Nuevas Actualizaciones o Proximos Scripts.",
+    Icon = "message-circle",
+    Callback = function()
+        setclipboard("https://discord.gg/J8w9jx88")
+        WindUI:Notify({
+            Title = "Discord Copiado",
+            Content = "Discord Copiado Correctamente.",
+            Duration = 3
+        })
+    end
+})
+
+WindUI:Notify({
+    Title = "X Hub Cargado",
+    Content = "Virus infectado ! Correctamente !",
+    Duration = 5
+})
