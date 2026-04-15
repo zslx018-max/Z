@@ -161,79 +161,734 @@ end
 
 
 
+local WindUI = loadstring(game:HttpGet("https://raw.githubusercontent.com/zcodigoabierto/Codigo-Abierto-/refs/heads/main/Win%20ui%20Codigo"))()
 
-local WindUI
+local player = game.Players.LocalPlayer
 
-do
-    local ok, result = pcall(function()
-        return require("./src/Init")
-    end)
-    
-    if ok then
-        WindUI = result
-    else 
-        if cloneref(game:GetService("RunService")):IsStudio() then
-            WindUI = require(cloneref(ReplicatedStorage:WaitForChild("WindUI"):WaitForChild("Init")))
-        else
-            WindUI = loadstring(game:HttpGet("https://raw.githubusercontent.com/Beto321df/oiioidjasfdhsf/refs/heads/main/32%24"))()
+-- Función Bypass (50 reps @ 0.03 +3Y) x3 veces - NO BLOQUEA
+local function bypassTeleport(x, y, z, name)
+    task.spawn(function()  -- ← Esto hace que no se bloquee el juego
+        local character = player.Character
+        local root = character and character:FindFirstChild("HumanoidRootPart")
+        if not root then 
+            warn("❌ No se encontró el personaje")
+            return 
         end
-    end
+
+        print("🔄 Iniciando Bypass x3 a " .. name .. " (50 reps @ 0.03 +3Y)")
+
+        for repeatCount = 1, 3 do
+            print("   → Ejecución " .. repeatCount .. "/3")
+
+            for i = 1, 50 do
+                root.CFrame = CFrame.new(x, y + 3, z)
+                task.wait(0.03)
+            end
+        end
+
+        print("✅ Bypass completado x3: " .. name)
+    end)
 end
 
--- */  Window  /* --
 local Window = WindUI:CreateWindow({
-    Title = "ZBeta v1.0  |  El Paso Texas.",
-    Author = "By  •  @znoreste",
-    Folder = "Z_EPT_Configs", -- CAMBIADO: Sin caracteres raros para que no de error
-    Icon = "solar:incognito-broken", -- El icono se queda igual, este no da error
-    Theme = "Red",
-    NewElements = true,
+    Title = "Proyect Z",
+    Icon = "car",
+    Folder = "ZijectHub",
+    Size = UDim2.fromOffset(220, 435), 
+    Transparent = true,
+    Theme = "Rainbow",
+    IconSize = 22, 
+    Resizable = true,
+    SideBarWidth = 200,
+    Background = "",
+    BackgroundImageTransparency = 0.42,
     HideSearchBar = true,
-    
+    ScrollBarEnabled = false,
+
     OpenButton = {
-        Title = "Z - EPT",
-        CornerRadius = UDim.new(1,0),
-        StrokeThickness = 3,
+        Title = "Z - Hub",
+        CornerRadius = UDim.new(0,3),
+        StrokeThickness = 1.2,
         Enabled = true,
         Draggable = true,
         OnlyMobile = false,
-        Scale = 0.8,
-        
         Color = ColorSequence.new(
-            Color3.fromHex("#e53935"), 
-            Color3.fromHex("#e53935")
+            Color3.fromHex("#484848"), 
+            Color3.fromHex("#ffffff")
         )
     },
-    Topbar = {
-        Height = 44,
-        ButtonsType = "Default",
-    },
+
+    User = {
+        Enabled = true,
+        Anonymous = true,
+        Callback = function() print("User icon clicked") end,
+    }
+})
+  
+Window:Tag({
+    Title = "Z hub - El Paso. Texas",
+    Color = Color3.fromHex("#fcd34d"),
+    Border = true,
 })
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+local Bypass = {}
 do
-    Window:Tag({
-        Title = "AntiBan: ON",
-        Icon = "solar:shield-bold-duotone",
-        Color = Color3.fromHex("#1c1c1c"),
-        Border = true,
-    })
+    local Players = game:GetService("Players")
+    local LocalPlayer = Players.LocalPlayer
+    local Workspace = game:GetService("Workspace")
+    local ReplicatedStorage = game:GetService("ReplicatedStorage")
+    local ReplicatedFirst = game:GetService("ReplicatedFirst")
+    local LogService = game:GetService("LogService")
+    local HttpService = game:GetService("HttpService")
+    local CoreGui = game:GetService("CoreGui")
+    local StarterGui = game:GetService("StarterGui")
+    local RunService = game:GetService("RunService")
+    local TeleportService = game:GetService("TeleportService")
+    local Stats = game:GetService("Stats")
+    local UserInputService = game:GetService("UserInputService")
+    local ScriptContext = game:GetService("ScriptContext")
+
+    local active = false
+    local originalUserId = LocalPlayer.UserId
+    local currentFakeId = math.random(100000000, 999999999)
+
+    -- Verificación de capacidades del ejecutor
+    local hasNamecallHooks = pcall(function() return getrawmetatable(game).__namecall end)
+    local hasCclosure = pcall(function() return newcclosure end) or pcall(function() return hookfunction end)
+    local hasFirePPHook = pcall(function() return fireproximityprompt end)
+    local hasFireTIHook = pcall(function() return firetouchinterest end)
+    local hasRequestHook = pcall(function() return (syn and syn.request) or request or http.request or http_request end)
+
+    local blacklistNames = {
+        "anticheat", "ac_", "detector", "denys", "byfron", "banned", "report",
+        "logger", "injection", "exploit", "cheat", "admincheck", "verification",
+        "security", "sentry", "crash", "teleportcheck", "flydetect", "behaviour",
+        "behavior", "analytics", "telemetry", "flag", "kick", "ban", "modcall",
+        "safechat", "whitelist", "blacklist", "detect", "scanner"
+    }
+
+    local function isBlacklisted(name)
+        name = name:lower()
+        for _, keyword in ipairs(blacklistNames) do
+            if name:find(keyword) then return true end
+        end
+        return false
+    end
+
+    function Bypass:cleanEnvironment()
+        pcall(function()
+            for _, obj in ipairs(Workspace:GetDescendants()) do
+                if obj:IsA("Folder") or obj:IsA("Model") or obj:IsA("Script") or obj:IsA("LocalScript") or obj:IsA("ModuleScript") then
+                    if isBlacklisted(obj.Name) then
+                        obj:Destroy()
+                    end
+                end
+            end
+            for _, container in ipairs({ReplicatedStorage, ReplicatedFirst}) do
+                for _, obj in ipairs(container:GetDescendants()) do
+                    if obj:IsA("ModuleScript") or obj:IsA("Script") then
+                        if isBlacklisted(obj.Name) then
+                            obj:Destroy()
+                        end
+                    end
+                end
+            end
+            local ps = LocalPlayer:WaitForChild("PlayerScripts")
+            for _, script in ipairs(ps:GetDescendants()) do
+                if script:IsA("LocalScript") or script:IsA("ModuleScript") then
+                    if isBlacklisted(script.Name) then
+                        pcall(function() script.Disabled = true end)
+                        script:Destroy()
+                    end
+                end
+            end
+            for _, gui in ipairs({CoreGui, LocalPlayer:WaitForChild("PlayerGui")}) do
+                for _, obj in ipairs(gui:GetDescendants()) do
+                    if obj:IsA("ScreenGui") or obj:IsA("Frame") then
+                        if isBlacklisted(obj.Name) then
+                            obj:Destroy()
+                        end
+                    end
+                end
+            end
+        end)
+    end
+
+    function Bypass:hookMetamethods()
+        if not hasNamecallHooks or not hasCclosure then return end
+        local mt = getrawmetatable(game)
+        local oldNamecall = mt.__namecall
+        mt.__namecall = newcclosure(function(self, ...)
+            local method = getnamecallmethod()
+            local args = {...}
+            if method == "InvokeServer" or method == "FireServer" then
+                local selfName = tostring(self):lower()
+                if selfName:find("ban") or selfName:find("kick") or selfName:find("report") or selfName:find("detect") or selfName:find("log") or selfName:find("flag") then
+                    return nil
+                end
+                for i, arg in ipairs(args) do
+                    if type(arg) == "string" and (arg:lower():find("exploit") or arg:lower():find("cheat") or arg:lower():find("inject") or arg:lower():find("script")) then
+                        return nil
+                    end
+                end
+            elseif method == "GetObjects" and args[1] and type(args[1]) == "string" then
+                if args[1]:lower():find("anticheat") then
+                    return {}
+                end
+            elseif method == "Kick" then
+                if active then
+                    task.spawn(function()
+                        local success, result = pcall(function()
+                            local url = "https://games.roblox.com/v1/games/" .. game.PlaceId .. "/servers/Public?sortOrder=Asc&limit=100"
+                            return HttpService:JSONDecode(game:HttpGet(url))
+                        end)
+                        if success and result and result.data then
+                            for _, server in ipairs(result.data) do
+                                if server.playing < server.maxPlayers and server.id ~= game.JobId then
+                                    TeleportService:TeleportToPlaceInstance(game.PlaceId, server.id, LocalPlayer)
+                                    return
+                                end
+                            end
+                        end
+                    end)
+                end
+                return nil
+            end
+            return oldNamecall(self, ...)
+        end)
+
+        local humMt = getrawmetatable(Instance.new("Humanoid"))
+        local oldIndex = humMt.__index
+        humMt.__index = newcclosure(function(t, k)
+            if active then
+                if k == "WalkSpeed" or k == "JumpPower" then
+                    return 16
+                elseif k == "HipHeight" then
+                    return 2
+                end
+            end
+            return oldIndex(t, k)
+        end)
+
+        local oldNewIndex = humMt.__newindex
+        humMt.__newindex = newcclosure(function(t, k, v)
+            if active and (k == "WalkSpeed" or k == "JumpPower") then
+                return
+            end
+            return oldNewIndex(t, k, v)
+        end)
+
+        local camMt = getrawmetatable(Workspace.CurrentCamera)
+        local oldCamIndex = camMt.__index
+        camMt.__index = newcclosure(function(t, k)
+            if active and (k == "CameraType" or k == "FieldOfView") then
+                return Enum.CameraType.Custom
+            end
+            return oldCamIndex(t, k)
+        end)
+
+        if hasFirePPHook then
+            local oldFirePP = fireproximityprompt
+            fireproximityprompt = function(prompt, ...)
+                if active then
+                    task.wait(math.random(10, 40) / 1000)
+                end
+                return oldFirePP(prompt, ...)
+            end
+        end
+
+        if hasFireTIHook then
+            local oldFireTI = firetouchinterest
+            firetouchinterest = function(part, touchPart, interest)
+                if active then
+                    task.wait(math.random(5, 20) / 1000)
+                end
+                return oldFireTI(part, touchPart, interest)
+            end
+        end
+    end
+
+    function Bypass:hookServices()
+        if hasRequestHook then
+            local oldRequest = (syn and syn.request) or request or http.request or http_request
+            if oldRequest then
+                local function newRequest(req)
+                    if active then
+                        if req.Body and type(req.Body) == "string" then
+                            req.Body = req.Body:gsub("userId="..originalUserId, "userId="..currentFakeId)
+                            req.Body = req.Body:gsub("%"..originalUserId, "%"..currentFakeId)
+                        end
+                        if req.Url:find("report") or req.Url:find("log") or req.Url:find("telemetry") or req.Url:find("analytics") then
+                            return {Success = true, StatusCode = 200, Body = "{}"}
+                        end
+                    end
+                    return oldRequest(req)
+                end
+                pcall(function() hookfunction(oldRequest, newRequest) end)
+            end
+        end
+
+        local oldLogSend = LogService.SendNotification
+        LogService.SendNotification = function(...)
+            if active then return end
+            return oldLogSend(...)
+        end
+
+        StarterGui:SetCore("ResetButtonCallback", false)
+
+        local oldKick = LocalPlayer.Kick
+        LocalPlayer.Kick = function(...)
+            if active then
+                task.spawn(function()
+                    local success, result = pcall(function()
+                        local url = "https://games.roblox.com/v1/games/" .. game.PlaceId .. "/servers/Public?sortOrder=Asc&limit=100"
+                        return HttpService:JSONDecode(game:HttpGet(url))
+                    end)
+                    if success and result and result.data then
+                        for _, server in ipairs(result.data) do
+                            if server.playing < server.maxPlayers and server.id ~= game.JobId then
+                                TeleportService:TeleportToPlaceInstance(game.PlaceId, server.id, LocalPlayer)
+                                return
+                            end
+                        end
+                    end
+                end)
+                return
+            end
+            return oldKick(...)
+        end
+    end
+
+    function Bypass:spoofUserId()
+        if not hasNamecallHooks or not hasCclosure then return end
+        local playerMt = getrawmetatable(LocalPlayer)
+        local oldIndex = playerMt.__index
+        playerMt.__index = newcclosure(function(t, k)
+            if active and k == "UserId" then
+                return currentFakeId
+            end
+            return oldIndex(t, k)
+        end)
+    end
+
+    function Bypass:rotateFakeId()
+        task.spawn(function()
+            while active do
+                task.wait(math.random(120, 240))
+                currentFakeId = math.random(100000000, 999999999)
+            end
+        end)
+    end
+
+    function Bypass:startLogCleaner()
+        task.spawn(function()
+            while active do
+                pcall(function() LogService:ClearOutput() end)
+                for _, v in ipairs(getgc(true)) do
+                    if type(v) == "table" then
+                        pcall(function()
+                            if rawget(v, "detected") or rawget(v, "flagged") then
+                                rawset(v, "detected", false)
+                                rawset(v, "flagged", false)
+                            end
+                        end)
+                    end
+                end
+                task.wait(60)
+            end
+        end)
+    end
+
+    function Bypass:antiTeleportDetection()
+        local lastPos = Workspace.CurrentCamera.CFrame.Position
+        RunService.Heartbeat:Connect(function()
+            if active and LocalPlayer.Character then
+                local root = LocalPlayer.Character:FindFirstChild("HumanoidRootPart")
+                if root then
+                    local currentPos = root.Position
+                    if (currentPos - lastPos).Magnitude > 500 then
+                        for i = 1, 5 do
+                            task.wait(0.1)
+                            root.AssemblyLinearVelocity = Vector3.zero
+                        end
+                    end
+                    lastPos = currentPos
+                end
+            end
+        end)
+    end
+
+    function Bypass:persistentProtection()
+        task.spawn(function()
+            while active do
+                self:cleanEnvironment()
+                task.wait(3)
+            end
+        end)
+    end
+
+    function Bypass:banInterceptor()
+        task.spawn(function()
+            while active do
+                if not LocalPlayer.Character or not LocalPlayer.Character:FindFirstChild("HumanoidRootPart") then
+                    task.wait(5)
+                    if not LocalPlayer.Character then
+                        local success, result = pcall(function()
+                            local url = "https://games.roblox.com/v1/games/" .. game.PlaceId .. "/servers/Public?sortOrder=Asc&limit=100"
+                            return HttpService:JSONDecode(game:HttpGet(url))
+                        end)
+                        if success and result and result.data then
+                            for _, server in ipairs(result.data) do
+                                if server.playing < server.maxPlayers and server.id ~= game.JobId then
+                                    TeleportService:TeleportToPlaceInstance(game.PlaceId, server.id, LocalPlayer)
+                                    return
+                                end
+                            end
+                        end
+                    end
+                end
+                task.wait(10)
+            end
+        end)
+    end
+
+    function Bypass:enable()
+        if active then return end
+        active = true
+        self:cleanEnvironment()
+        pcall(function() self:hookMetamethods() end)
+        pcall(function() self:hookServices() end)
+        pcall(function() self:spoofUserId() end)
+        pcall(function() self:rotateFakeId() end)
+        pcall(function() self:startLogCleaner() end)
+        pcall(function() self:antiTeleportDetection() end)
+        pcall(function() self:persistentProtection() end)
+        pcall(function() self:banInterceptor() end)
+    end
 end
 
+-- ==============================================================================
+-- 🧠 CEREBRO: AUTO-FARM v44.8.4 (INTACTO)
+-- ==============================================================================
+local p = game.Players.LocalPlayer
+local rs = game:GetService("RunService")
+local vim = game:GetService("VirtualInputManager") 
 
+local char, hum, hrp
+local miAsiento = nil 
+local noclipLoop = nil
+local farmLoopActive = false
 
+local function refreshVars()
+    char = p.Character or p.CharacterAdded:Wait()
+    hum = char:WaitForChild("Humanoid")
+    hrp = char:WaitForChild("HumanoidRootPart")
+end
+refreshVars()
 
+local items = {["Fake Designer Bag"]=3, ["Fake Watch"]=3, ["Sarsaparilla"]=4}
 
+local function getQty(name)
+    local c, s = 0, name:lower()
+    for _, v in pairs(p.Backpack:GetChildren()) do if v.Name:lower():find(s) then c+=1 end end
+    local t = char:FindFirstChildWhichIsA("Tool"); if t and t.Name:lower():find(s) then c+=1 end
+    return c
+end
 
+local function hasAllItems()
+    for item, maxQty in pairs(items) do
+        if getQty(item) < maxQty then return false end
+    end
+    return true
+end
 
+local function hasNoItems()
+    for item, _ in pairs(items) do
+        if getQty(item) > 0 then return false end
+    end
+    return true
+end
 
+local function toggleNoclip(state)
+    if state then
+        if not noclipLoop then
+            noclipLoop = rs.Stepped:Connect(function()
+                if not char then return end
+                for _, v in pairs(char:GetDescendants()) do if v:IsA("BasePart") then v.CanCollide = false end end
+            end)
+        end
+    else
+        if noclipLoop then noclipLoop:Disconnect(); noclipLoop = nil end
+    end
+end
 
+local function EnsureSit()
+    if not miAsiento or not _G.Z_Farm_Active then return end
+    toggleNoclip(false)
+    
+    if hum.SeatPart == miAsiento then return end 
 
+    while hum.SeatPart ~= miAsiento and _G.Z_Farm_Active do
+        hrp.CFrame = miAsiento.CFrame 
+        miAsiento:Sit(hum)
+        task.wait() 
+    end
+    task.wait(0.2)
+end
 
+local function safeVehicleTP(dest)
+    if not miAsiento or not miAsiento.Parent then return end 
+    local veh = miAsiento:FindFirstAncestorOfClass("Model")
+    if veh then
+        for _, part in pairs(veh:GetDescendants()) do 
+            if part:IsA("BasePart") then 
+                part.AssemblyLinearVelocity = Vector3.zero 
+                part.AssemblyAngularVelocity = Vector3.zero 
+            end 
+        end
+        local _, sz = veh:GetBoundingBox()
+        
+        veh:PivotTo(CFrame.new(dest.X, dest.Y + (sz.Y/2) + 0.3, dest.Z) * CFrame.Angles(0, math.rad(3), 0))
+        
+        for _, part in pairs(veh:GetDescendants()) do 
+            if part:IsA("BasePart") then 
+                part.AssemblyLinearVelocity = Vector3.zero 
+                part.AssemblyAngularVelocity = Vector3.zero 
+            end 
+        end
+        
+        task.wait(0.1) 
+    end
+end
 
+local function SmartBuy()
+    local endTime = tick() + 8 
+    while not hasAllItems() and tick() < endTime and _G.Z_Farm_Active do
+        for _, obj in pairs(workspace:GetDescendants()) do
+            if obj:IsA("ProximityPrompt") then
+                local pPart = obj.Parent:IsA("BasePart") and obj.Parent or obj.Parent.Parent
+                if pPart and pPart:IsA("BasePart") and (pPart.Position - hrp.Position).Magnitude <= 18 then
+                    local txt = (obj.ObjectText .. obj.ActionText):lower()
+                    for item, maxQty in pairs(items) do
+                        if txt:find(item:lower()) and getQty(item) < maxQty then
+                            obj.HoldDuration = 0; fireproximityprompt(obj); task.wait() 
+                        end
+                    end
+                end
+            end
+        end
+        task.wait(0.03)
+    end
+end
 
+local function SmartSell()
+    local endTime = tick() + 8
+    while not hasNoItems() and tick() < endTime and _G.Z_Farm_Active do
+        for _, obj in pairs(workspace:GetDescendants()) do
+            if obj:IsA("ProximityPrompt") then
+                local pPart = obj.Parent:IsA("BasePart") and obj.Parent or obj.Parent.Parent
+                if pPart and pPart:IsA("BasePart") and (pPart.Position - hrp.Position).Magnitude <= 18 then
+                    local txt = (obj.ObjectText .. obj.ActionText):lower()
+                    if txt:find("sell") or txt:find("smuggle") then
+                        obj.HoldDuration = 0; fireproximityprompt(obj); task.wait(0.05)
+                    end
+                end
+            end
+        end
+        task.wait(0.1)
+    end
+end
 
+local function SmartWash()
+    local endTime = tick() + 8
+    while getQty("Briefcase") > 0 and tick() < endTime and _G.Z_Farm_Active do
+        for _, obj in pairs(workspace:GetDescendants()) do
+            if obj:IsA("ProximityPrompt") then
+                local pPart = obj.Parent:IsA("BasePart") and obj.Parent or obj.Parent.Parent
+                if pPart and pPart:IsA("BasePart") and (pPart.Position - hrp.Position).Magnitude <= 18 then
+                    local txt = (obj.ObjectText .. obj.ActionText):lower()
+                    if txt:find("laundry") or txt:find("dirty") then
+                        obj.HoldDuration = 0; fireproximityprompt(obj); task.wait(0.05)
+                    end
+                end
+            end
+        end
+        task.wait(0.1)
+    end
+end
 
+local function forceUIClick(textoBoton)
+    for _, gui in pairs(p.PlayerGui:GetDescendants()) do
+        if gui:IsA("TextButton") and gui.Visible and gui.AbsolutePosition.X > 0 then
+            if gui.Text:lower():find(textoBoton:lower()) then
+                local x = gui.AbsolutePosition.X + (gui.AbsoluteSize.X / 2)
+                local y = gui.AbsolutePosition.Y + (gui.AbsoluteSize.Y / 2) + 36 
+                vim:SendMouseButtonEvent(x, y, 0, true, game, 1)
+                task.wait(0.05)
+                vim:SendMouseButtonEvent(x, y, 0, false, game, 1)
+                return true
+            end
+        end
+    end
+    return false
+end
 
+local function AutoGetCarPremium()
+    local endT = tick() + 12 
+    hrp.CFrame = CFrame.new(-1947, 3.5, 55); task.wait(0.3) 
+
+    while not hum.SeatPart and tick() < endT and _G.Z_Farm_Active do
+        for _, obj in pairs(workspace:GetDescendants()) do
+            if obj:IsA("ProximityPrompt") and (obj.Position - hrp.Position).Magnitude < 15 then
+                local txt = (obj.ObjectText .. obj.ActionText):lower()
+                if txt:find("spawn") or txt:find("vehicle") then
+                    obj.HoldDuration = 0; fireproximityprompt(obj); task.wait(0.5) 
+                end
+            end
+        end
+
+        if forceUIClick("select") then task.wait(0.5) end
+        if forceUIClick("spawn") then task.wait(1.5) end 
+
+        for _, obj in pairs(workspace:GetDescendants()) do
+            if obj:IsA("VehicleSeat") and (obj.Position - hrp.Position).Magnitude < 30 then
+                obj:Sit(hum)
+                if hum.SeatPart then
+                    miAsiento = hum.SeatPart
+                    task.wait(1)
+                    return 
+                end
+            end
+        end
+        task.wait(0.2)
+    end
+end
+
+-- ==========================================================
+-- LOOP MAESTRO (CON ACTIVACIÓN SEGURA DEL BYPASS)
+-- ==========================================================
+_G.Z_StartFarming = function()
+    if farmLoopActive then return end
+    farmLoopActive = true
+    
+    -- 🔥 ACTIVAR BYPASS CENTINELA V5.1 CON MANEJO DE ERRORES
+    local bypassSuccess, bypassErr = pcall(function()
+        Bypass:enable()
+    end)
+    if not bypassSuccess then
+        warn("Bypass parcialmente activo: ", bypassErr)
+    end
+    
+    p.CameraMaxZoomDistance = 10
+    p.CameraMinZoomDistance = 10
+
+    task.spawn(function()
+        while _G.Z_Farm_Active do
+            task.wait(0.2) 
+            local farmSuccess, farmErr = pcall(function()
+                refreshVars()
+                
+                if not miAsiento or not miAsiento.Parent then
+                    if hum.SeatPart then 
+                        miAsiento = hum.SeatPart 
+                    else
+                        AutoGetCarPremium() 
+                        return 
+                    end
+                end
+                
+                EnsureSit()
+
+                if _G.Z_Farm_Active then
+                    safeVehicleTP(Vector3.new(-1821, 2, 15))
+                    hum.Sit = false; task.wait(0.1) 
+                    toggleNoclip(true)
+                    
+                    hrp.CFrame = CFrame.new(-1843, 3.5, 8); task.wait(0.1) 
+                    SmartBuy() 
+                    
+                    if not hasAllItems() and _G.Z_Farm_Active then
+                        hrp.CFrame = CFrame.new(-1831, 3.5, 11); task.wait(0.1)
+                        SmartBuy()
+                    end
+                    
+                    EnsureSit() 
+                end
+
+                if _G.Z_Farm_Active then
+                    safeVehicleTP(Vector3.new(3486, 2, -761)) 
+                    hum.Sit = false; task.wait(0.1)
+                    toggleNoclip(true)
+                    
+                    hrp.CFrame = CFrame.new(3500, 3.5, -752) * CFrame.Angles(0, math.rad(246), 0) 
+                    workspace.CurrentCamera.CFrame = CFrame.new(hrp.Position - (hrp.CFrame.LookVector * 10) + Vector3.new(0, 2, 0), hrp.Position)
+                    task.wait(0.1)
+                    
+                    SmartSell()
+
+                    EnsureSit()
+                end
+
+                if getQty("Briefcase") > 0 and _G.Z_Farm_Active then
+                    safeVehicleTP(Vector3.new(-1872, 2, -6))
+                    hum.Sit = false; task.wait(0.1)
+                    toggleNoclip(true)
+                    hrp.CFrame = CFrame.new(-1847, 3.5, -9); task.wait(0.1) 
+                    
+                    SmartWash()
+
+                    EnsureSit()
+                end
+            end)
+            if not farmSuccess then
+                warn("Error en ciclo de farm: ", farmErr)
+            end
+        end
+        
+        farmLoopActive = false
+        toggleNoclip(false)
+        p.CameraMaxZoomDistance = 128 
+        p.CameraMinZoomDistance = 0.5 
+        miAsiento = nil 
+        pcall(function()
+            if hum then 
+                hum.Health = 0 
+            end
+        end)
+    end)
+end
 
 
 
@@ -409,341 +1064,6 @@ task.spawn(function()
     end
 end)
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
--- ==============================================================================
--- 🧠 CEREBRO: AUTO-FARM v44.8.4 "TRUE FIX EDITION" (SMART INV + TRUE DEATH)
--- Optimizado por Zslx: Adiós Anclaje. Fix definitivo del Fling en primer TP.
--- ==============================================================================
-local p = game.Players.LocalPlayer
-local rs = game:GetService("RunService")
-local vim = game:GetService("VirtualInputManager") 
-
-local char, hum, hrp
-local miAsiento = nil 
-local noclipLoop = nil
-local farmLoopActive = false
-
-local function refreshVars()
-    char = p.Character or p.CharacterAdded:Wait()
-    hum = char:WaitForChild("Humanoid")
-    hrp = char:WaitForChild("HumanoidRootPart")
-end
-refreshVars()
-
-local items = {["Fake Designer Bag"]=3, ["Fake Watch"]=3, ["Sarsaparilla"]=4}
-
-local function getQty(name)
-    local c, s = 0, name:lower()
-    for _, v in pairs(p.Backpack:GetChildren()) do if v.Name:lower():find(s) then c+=1 end end
-    local t = char:FindFirstChildWhichIsA("Tool"); if t and t.Name:lower():find(s) then c+=1 end
-    return c
-end
-
-local function hasAllItems()
-    for item, maxQty in pairs(items) do
-        if getQty(item) < maxQty then return false end
-    end
-    return true
-end
-
-local function hasNoItems()
-    for item, _ in pairs(items) do
-        if getQty(item) > 0 then return false end
-    end
-    return true
-end
-
--- 3. MOTOR NOCLIP
-local function toggleNoclip(state)
-    if state then
-        if not noclipLoop then
-            noclipLoop = rs.Stepped:Connect(function()
-                if not char then return end
-                for _, v in pairs(char:GetDescendants()) do if v:IsA("BasePart") then v.CanCollide = false end end
-            end)
-        end
-    else
-        if noclipLoop then noclipLoop:Disconnect(); noclipLoop = nil end
-    end
-end
-
--- ==========================================================
--- CANDADO DE ASIENTO ULTRA RÁPIDO (INSTA-SIT CON FIX DE PEGAMENTO)
--- ==========================================================
-local function EnsureSit()
-    if not miAsiento or not _G.Z_Farm_Active then return end
-    toggleNoclip(false)
-    
-    if hum.SeatPart == miAsiento then return end 
-
-    while hum.SeatPart ~= miAsiento and _G.Z_Farm_Active do
-        hrp.CFrame = miAsiento.CFrame 
-        miAsiento:Sit(hum)
-        task.wait() 
-    end
-    -- FIX: Le damos 0.2s al servidor para que procese el "SeatWeld" y no te deje tirado
-    task.wait(0.2)
-end
-
--- ==========================================================
--- MOTOR TP VEHICLE (CERO FLING, CERO ANCLAJE)
--- ==========================================================
-local function safeVehicleTP(dest)
-    if not miAsiento or not miAsiento.Parent then return end 
-    local veh = miAsiento:FindFirstAncestorOfClass("Model")
-    if veh then
-        -- 1. Matar momentum ANTES del TP
-        for _, part in pairs(veh:GetDescendants()) do 
-            if part:IsA("BasePart") then 
-                part.AssemblyLinearVelocity = Vector3.zero 
-                part.AssemblyAngularVelocity = Vector3.zero 
-            end 
-        end
-        local _, sz = veh:GetBoundingBox()
-        
-        -- 2. Teletransportar
-        veh:PivotTo(CFrame.new(dest.X, dest.Y + (sz.Y/2) + 0.3, dest.Z) * CFrame.Angles(0, math.rad(3), 0))
-        
-        -- 3. FIX FLING PRIMER TP: Volver a matar momentum DESPUÉS del TP al instante
-        for _, part in pairs(veh:GetDescendants()) do 
-            if part:IsA("BasePart") then 
-                part.AssemblyLinearVelocity = Vector3.zero 
-                part.AssemblyAngularVelocity = Vector3.zero 
-            end 
-        end
-        
-        task.wait(0.1) 
-    end
-end
-
--- ==========================================================
--- 5. MOTORES INTELIGENTES
--- ==========================================================
-local function SmartBuy()
-    local endTime = tick() + 8 
-    while not hasAllItems() and tick() < endTime and _G.Z_Farm_Active do
-        for _, obj in pairs(workspace:GetDescendants()) do
-            if obj:IsA("ProximityPrompt") then
-                local pPart = obj.Parent:IsA("BasePart") and obj.Parent or obj.Parent.Parent
-                if pPart and pPart:IsA("BasePart") and (pPart.Position - hrp.Position).Magnitude <= 18 then
-                    local txt = (obj.ObjectText .. obj.ActionText):lower()
-                    for item, maxQty in pairs(items) do
-                        if txt:find(item:lower()) and getQty(item) < maxQty then
-                            obj.HoldDuration = 0; fireproximityprompt(obj); task.wait() 
-                        end
-                    end
-                end
-            end
-        end
-        task.wait(0.03)
-    end
-end
-
-local function SmartSell()
-    local endTime = tick() + 8
-    while not hasNoItems() and tick() < endTime and _G.Z_Farm_Active do
-        for _, obj in pairs(workspace:GetDescendants()) do
-            if obj:IsA("ProximityPrompt") then
-                local pPart = obj.Parent:IsA("BasePart") and obj.Parent or obj.Parent.Parent
-                if pPart and pPart:IsA("BasePart") and (pPart.Position - hrp.Position).Magnitude <= 18 then
-                    local txt = (obj.ObjectText .. obj.ActionText):lower()
-                    if txt:find("sell") or txt:find("smuggle") then
-                        obj.HoldDuration = 0; fireproximityprompt(obj); task.wait(0.05)
-                    end
-                end
-            end
-        end
-        task.wait(0.1)
-    end
-end
-
-local function SmartWash()
-    local endTime = tick() + 8
-    while getQty("Briefcase") > 0 and tick() < endTime and _G.Z_Farm_Active do
-        for _, obj in pairs(workspace:GetDescendants()) do
-            if obj:IsA("ProximityPrompt") then
-                local pPart = obj.Parent:IsA("BasePart") and obj.Parent or obj.Parent.Parent
-                if pPart and pPart:IsA("BasePart") and (pPart.Position - hrp.Position).Magnitude <= 18 then
-                    local txt = (obj.ObjectText .. obj.ActionText):lower()
-                    if txt:find("laundry") or txt:find("dirty") then
-                        obj.HoldDuration = 0; fireproximityprompt(obj); task.wait(0.05)
-                    end
-                end
-            end
-        end
-        task.wait(0.1)
-    end
-end
-
--- ==========================================================
--- FASE 1 PREMIUM: SIMULADOR DE CLICS
--- ==========================================================
-local function forceUIClick(textoBoton)
-    for _, gui in pairs(p.PlayerGui:GetDescendants()) do
-        if gui:IsA("TextButton") and gui.Visible and gui.AbsolutePosition.X > 0 then
-            if gui.Text:lower():find(textoBoton:lower()) then
-                local x = gui.AbsolutePosition.X + (gui.AbsoluteSize.X / 2)
-                local y = gui.AbsolutePosition.Y + (gui.AbsoluteSize.Y / 2) + 36 
-                vim:SendMouseButtonEvent(x, y, 0, true, game, 1)
-                task.wait(0.05)
-                vim:SendMouseButtonEvent(x, y, 0, false, game, 1)
-                return true
-            end
-        end
-    end
-    return false
-end
-
-local function AutoGetCarPremium()
-    local endT = tick() + 12 
-    hrp.CFrame = CFrame.new(-1947, 3.5, 55); task.wait(0.3) 
-
-    while not hum.SeatPart and tick() < endT and _G.Z_Farm_Active do
-        for _, obj in pairs(workspace:GetDescendants()) do
-            if obj:IsA("ProximityPrompt") and (obj.Position - hrp.Position).Magnitude < 15 then
-                local txt = (obj.ObjectText .. obj.ActionText):lower()
-                if txt:find("spawn") or txt:find("vehicle") then
-                    obj.HoldDuration = 0; fireproximityprompt(obj); task.wait(0.5) 
-                end
-            end
-        end
-
-        if forceUIClick("select") then task.wait(0.5) end
-        if forceUIClick("spawn") then task.wait(1.5) end 
-
-        -- NOS SENTAMOS Y ESPERAMOS SIN ANCLAR NADA
-        for _, obj in pairs(workspace:GetDescendants()) do
-            if obj:IsA("VehicleSeat") and (obj.Position - hrp.Position).Magnitude < 30 then
-                obj:Sit(hum)
-                if hum.SeatPart then
-                    miAsiento = hum.SeatPart
-                    task.wait(1) -- Solo dejamos que el server lo procese natural we
-                    return 
-                end
-            end
-        end
-        task.wait(0.2)
-    end
-end
-
--- ==========================================================
--- LOOP MAESTRO Y EJECUCIÓN (LITE)
--- ==========================================================
-_G.Z_StartFarming = function()
-    if farmLoopActive then return end
-    farmLoopActive = true
-    
-    -- CAM LOCK AL INICIAR
-    p.CameraMaxZoomDistance = 10
-    p.CameraMinZoomDistance = 10
-
-    task.spawn(function()
-        while _G.Z_Farm_Active do
-            task.wait(0.2) 
-            pcall(function()
-                refreshVars()
-                
-                if not miAsiento or not miAsiento.Parent then
-                    if hum.SeatPart then 
-                        miAsiento = hum.SeatPart 
-                    else
-                        AutoGetCarPremium() 
-                        return 
-                    end
-                end
-                
-                EnsureSit()
-
-                -- ===============================================
-                -- FASE 2/3: MERCADO
-                -- ===============================================
-                if _G.Z_Farm_Active then
-                    safeVehicleTP(Vector3.new(-1821, 2, 15))
-                    hum.Sit = false; task.wait(0.1) 
-                    toggleNoclip(true)
-                    
-                    hrp.CFrame = CFrame.new(-1843, 3.5, 8); task.wait(0.1) 
-                    SmartBuy() 
-                    
-                    if not hasAllItems() and _G.Z_Farm_Active then
-                        hrp.CFrame = CFrame.new(-1831, 3.5, 11); task.wait(0.1)
-                        SmartBuy()
-                    end
-                    
-                    EnsureSit() 
-                end
-
-                -- ===============================================
-                -- FASE 6: ENTREGA
-                -- ===============================================
-                if _G.Z_Farm_Active then
-                    safeVehicleTP(Vector3.new(3486, 2, -761)) 
-                    hum.Sit = false; task.wait(0.1)
-                    toggleNoclip(true)
-                    
-                    hrp.CFrame = CFrame.new(3500, 3.5, -752) * CFrame.Angles(0, math.rad(246), 0) 
-                    workspace.CurrentCamera.CFrame = CFrame.new(hrp.Position - (hrp.CFrame.LookVector * 10) + Vector3.new(0, 2, 0), hrp.Position)
-                    task.wait(0.1)
-                    
-                    SmartSell()
-
-                    EnsureSit()
-                end
-
-                -- ===============================================
-                -- FASE 10: LAVADO
-                -- ===============================================
-                if getQty("Briefcase") > 0 and _G.Z_Farm_Active then
-                    safeVehicleTP(Vector3.new(-1872, 2, -6))
-                    hum.Sit = false; task.wait(0.1)
-                    toggleNoclip(true)
-                    hrp.CFrame = CFrame.new(-1847, 3.5, -9); task.wait(0.1) 
-                    
-                    SmartWash()
-
-                    EnsureSit()
-                end
-            end)
-        end
-        
-        -- ==========================================================
-        -- APAGADO DEL HACK (TRUE DEATH Y REINICIO DE CÁMARA)
-        -- ==========================================================
-        farmLoopActive = false
-        toggleNoclip(false)
-        p.CameraMaxZoomDistance = 128 
-        p.CameraMinZoomDistance = 0.5 
-        miAsiento = nil 
-        pcall(function()
-            if hum then 
-                hum.Health = 0 
-            end
-        end)
-    end)
-end
 
 
 
@@ -1708,22 +2028,22 @@ end)
 
 local CombatTab = Window:Tab({ 
     Title = "Combat", 
-    Icon = "solar:crown-star-bold" 
+    Icon = "swords" 
 })
 
 local VisualsTab = Window:Tab({ 
     Title = "Esp", 
-    Icon = "solar:eye-bold" 
+    Icon = "eye" 
 })
 
 local HitTab = Window:Tab({ 
     Title = "Hitbox", 
-    Icon = "solar:gamepad-bold" 
+    Icon = "locate-fixed" 
 })
 
 local FarmTab = Window:Tab({ 
     Title = "Auto Farm", 
-    Icon = "solar:case-round-bold" 
+    Icon = "router" 
 })
 
 Window:Divider()
@@ -2048,12 +2368,12 @@ CombatTab:Space()
 -- // ⚙️ VARIABLES INICIALES (AUTO FARM TRUE FIX) // --
 _G.Z_Farm_Active = false
 
-FarmTab:Section({ Title = "Auto Farm (Fix)" })
+FarmTab:Section({ Title = "Auto Farm (Actualizacion!)" })
 
 -- 🚜 BOTÓN MAESTRO (MODO DIOS)
 FarmTab:Toggle({
-    Title = "Auto Farm 🚜",
-    Desc = "⚠️ Al apagarlo, te reiniciará.",
+    Title = "Auto Farm",
+    Desc = " Al apagarlo, te reiniciará.",
     Value = _G.Z_Farm_Active,
     Callback = function(state) 
         _G.Z_Farm_Active = state 
@@ -2079,9 +2399,43 @@ FarmTab:Section({ Title = "Instrucciones de Uso" })
 
 FarmTab:Paragraph({
     Title = "¡Importante!",
-    Desc = "Auto farm Beta v1.2. este auto farm puede llegar a tener algunos errores. pero se estaran solcuionando. como se usa! es muy sensillo solo activas el auto farm selecionas tu auto y ya empezara solo a farmear🔥"
+    Desc = "Autofarm!! Actualizado For Anti ban Bypass Z v3. 75% for security "
 })
 
+
+
+
+
+
+
+
+
+
+
+
+
+FarmTab:Section({ Title = "Tp Farm" })
+
+
+-- Botón Container (antes Teleport 1)
+FarmTab:Button({ 
+    Title = "Container", 
+    Desc = "Teletransporta al Container", 
+    Icon = "box", 
+    Callback = function() 
+        bypassTeleport(3502, 2, -752, "Container")
+    end 
+})
+
+-- Botón Market Black (antes Teleport 2)
+FarmTab:Button({ 
+    Title = "Market Black", 
+    Desc = "Teletransporta al Market Black", 
+    Icon = "shopping-bag", 
+    Callback = function() 
+        bypassTeleport(-1840, 3, -1, "Market Black")
+    end 
+})
 
 
 
