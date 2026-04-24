@@ -1,0 +1,84 @@
+-- Cargamos la librería WindUI
+local WindUI = loadstring(game:HttpGet("https://raw.githubusercontent.com/zslx018-max/Z/refs/heads/main/f1"))()
+
+local Window = WindUI:CreateWindow({
+    Title = "Proyect Z",
+    Icon = "chess-knight",
+    Folder = "ZHub",
+    Size = UDim2.fromOffset(75, 365),
+    Transparent = false,
+    Theme = "Dark",
+    IconSize = 20, 
+    Resizable = true,
+    SideBarWidth = 200,
+    Background = "",
+    BackgroundImageTransparency = 0.42,
+    HideSearchBar = true,
+    ScrollBarEnabled = false,
+
+    OpenButton = {
+        Title = "Z Hub",
+        CornerRadius = UDim.new(0,3),
+        StrokeThickness = 1.2,
+        Enabled = true,
+        Draggable = true,
+        OnlyMobile = false,
+        Color = ColorSequence.new(
+            Color3.fromHex("#484848"), 
+            Color3.fromHex("#ffffff")
+        )
+    },
+
+    User = {
+        Enabled = true,
+        Anonymous = true,
+        Callback = function() print("User icon clicked") end,
+    }
+})
+  
+Window:Tag({
+    Title = "Z hub - El Paso. Texas",
+    Color = Color3.fromHex("#fcd34d"),
+    Border = true,
+})
+
+local CombatTab = Window:Tab({ 
+    Title = "Combat", 
+    Icon = "swords" 
+})
+
+local VisualsTab = Window:Tab({ 
+    Title = "Esp", 
+    Icon = "eye" 
+})
+
+local HitTab = Window:Tab({ 
+    Title = "Hitbox", 
+    Icon = "locate-fixed" 
+})
+
+local otherTab = Window:Tab({ 
+    Title = "Others", 
+    Icon = "scroll-text" 
+})
+
+Window:Divider()
+
+local FarmTab = Window:Tab({ 
+    Title = "Auto Farm", 
+    Icon = "router" 
+})
+
+Window:Divider() -- Una línea para separar
+
+
+
+
+
+-- Notificación Estilo Premium
+WindUI:Notify({
+    Title = "X-Hub | Sistem",
+    Content = "Bienvenido | " .. Player.Name,
+    Icon = AvatarImg,
+    Duration = 5
+})
