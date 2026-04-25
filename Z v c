@@ -1,0 +1,84 @@
+local WindUI = loadstring(game:HttpGet("https://raw.githubusercontent.com/zslx018-max/Z/refs/heads/main/f1"))()
+
+local Window = WindUI:CreateWindow({
+    Title = "Z hub",
+    Icon = "chess-knight",
+    Folder = "ZHub",
+    Size = UDim2.fromOffset(100, 445), 
+    Transparent = false,
+    Theme = "Dark",
+    IconSize = 22, 
+    Resizable = true,
+    SideBarWidth = 200,
+    Background = "",
+    BackgroundImageTransparency = 0.42,
+    HideSearchBar = true,
+    ScrollBarEnabled = false,
+
+    OpenButton = {
+        Title = "Ghost Hub",
+        CornerRadius = UDim.new(0,3),
+        StrokeThickness = 1.2,
+        Enabled = false,
+        Draggable = true,
+        OnlyMobile = false,
+        Color = ColorSequence.new(
+            Color3.fromHex("#484848"), 
+            Color3.fromHex("#ffffff")
+        )
+    },
+
+    User = {
+        Enabled = true,
+        Anonymous = true,
+        Callback = function() print("User icon clicked") end,
+    }
+})
+  
+Window:Tag({
+    Title = "Z hub - MM2",
+    Icon = "lock-open",
+    Color = Color3.fromHex("#0040ff"),
+    Border = true,
+})
+
+local ASSET_ID = "94517252908238"
+local Screen = Instance.new("ScreenGui", game.CoreGui)
+Screen.Name = "ZHub_SquareLogo"
+Screen.ResetOnSpawn = false
+
+local MasterBtn = Instance.new("TextButton", Screen)
+MasterBtn.Size = UDim2.new(0, 50, 0, 50)
+MasterBtn.Position = UDim2.new(0.1, 0, 0.4, 0)
+MasterBtn.BackgroundTransparency = 1 
+MasterBtn.Text = "" 
+MasterBtn.Active = true
+MasterBtn.Draggable = true
+
+local MIcon = Instance.new("ImageLabel", MasterBtn)
+MIcon.Size = UDim2.new(1, 0, 1, 0)
+MIcon.Position = UDim2.new(0, 0, 0, 0)
+MIcon.BackgroundTransparency = 1
+MIcon.Image = "rbxthumb://type=Asset&id=" .. ASSET_ID .. "&w=420&h=420"
+MIcon.ZIndex = MasterBtn.ZIndex + 1
+MIcon.ScaleType = Enum.ScaleType.Stretch
+
+local MStroke = Instance.new("UIStroke", MasterBtn)
+MStroke.Thickness = 1.5
+MStroke.Color = Color3.fromHex("#484848")
+
+MasterBtn.MouseButton1Click:Connect(function()
+    if Window.Toggle then
+        Window:Toggle()
+    elseif Window.Visible ~= nil then
+        Window.Visible = not Window.Visible
+    else
+        local gui = game.CoreGui:FindFirstChild("WindUI") or Player.PlayerGui:FindFirstChild("WindUI")
+        if gui then gui.Enabled = not gui.Enabled end
+    end
+end)
+
+local CombatTab = Window:Tab({ Title = "Combat", Icon = "swords" })
+local VisualsTab = Window:Tab({ Title = "Esp", Icon = "eye" })
+local HitTab = Window:Tab({ Title = "Hitbox", Icon = "locate-fixed" })
+local OtherTab = Window:Tab({ Title = "Others", Icon = "scroll-text" })
